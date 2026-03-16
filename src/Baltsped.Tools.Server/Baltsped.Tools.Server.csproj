@@ -7,6 +7,7 @@
     <UserSecretsId>d5855d68-dd3c-4f06-8479-4cbd6cd59b4f</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>..\..</DockerfileContext>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
