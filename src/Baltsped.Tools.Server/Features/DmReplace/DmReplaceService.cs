@@ -32,14 +32,14 @@ public sealed class DmReplaceService(
                     {
                         ItemId = article.ItemId,
                         Barcode = article.Barcode,
-                        TeCode = article.Container != null ? article.Container.Code : string.Empty,
+                        TeCode = article.Container!.Code,
                         BatchName = article.Batch != null ? article.Batch.Name : string.Empty,
                         TargetCode = article.Target != null ? article.Target.Code : string.Empty
                     })
                     .ToListAsync(ct),
             cancellationToken);
 
-        logger.LogInformation("Loaded {RowCount} rows for TE {TeCode}", rows.Count, normalizedTeCode);
+        DmReplaceLogMessages.SearchCompleted(logger, rows.Count, normalizedTeCode);
 
         return rows;
     }
@@ -67,19 +67,11 @@ public sealed class DmReplaceService(
                 .Where(x => x.ItemId == itemId
                     && x.Container != null
                     && x.Container.Code == normalizedTeCode)
-                .SingleOrDefaultAsync(ct);
-
-            if (article is null)
-            {
-                throw new ValidationException("Запись для обновления не найдена");
-            }
-
+                .SingleOrDefaultAsync(ct) ?? throw new ValidationException("Запись для обновления не найдена");
+            
             if (string.Equals(article.Barcode, normalizedDm, StringComparison.Ordinal))
             {
-                logger.LogInformation(
-                    "DM for item {ItemId} in TE {TeCode} is unchanged",
-                    itemId,
-                    normalizedTeCode);
+                DmReplaceLogMessages.UpdateSkippedBecauseUnchanged(logger, itemId, normalizedTeCode);
 
                 return new DmReplaceUpdateResultModel();
             }
@@ -98,10 +90,7 @@ public sealed class DmReplaceService(
 
             await dbContext.SaveChangesAsync(ct);
 
-            logger.LogInformation(
-                "Updated DM for item {ItemId} in TE {TeCode}",
-                itemId,
-                normalizedTeCode);
+            DmReplaceLogMessages.UpdateCompleted(logger, itemId, normalizedTeCode);
 
             return new DmReplaceUpdateResultModel
             {

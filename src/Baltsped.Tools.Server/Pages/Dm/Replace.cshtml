@@ -1,0 +1,456 @@
+﻿@page "/dm/replace"
+@model Baltsped.Tools.Server.Pages.Dm.ReplaceModel
+@{
+    ViewData["Title"] = "Замена DM-кодов";
+}
+
+<style>
+    .replace-row {
+        cursor: pointer;
+    }
+
+        .replace-row.row-selected {
+            --bs-table-bg: #e7f1ff;
+            --bs-table-hover-bg: #d8e8ff;
+        }
+
+    .replace-editor-row {
+        display: none;
+    }
+
+        .replace-editor-row.row-expanded {
+            display: table-row;
+        }
+
+    .replace-editor-panel {
+        background-color: #f8f9fb;
+        border-top: 1px solid #dee2e6;
+        animation: slideDown 160ms ease-out;
+    }
+
+    .replace-row.row-disabled {
+        position: relative;
+        pointer-events: none;
+        opacity: .7;
+    }
+
+        .replace-row.row-disabled::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-color: rgba(248, 249, 250, .72);
+        }
+
+    .replace-pagination {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: .5rem;
+        padding: .75rem 1rem;
+        border-top: 1px solid #dee2e6;
+        background-color: #f8f9fb;
+    }
+
+    .replace-tools {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: .75rem;
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+        background-color: #f8f9fb;
+    }
+
+    .replace-search {
+        max-width: 420px;
+        width: 100%;
+    }
+
+    .replace-toast-stack {
+        z-index: 1085;
+    }
+
+    .replace-toast {
+        border-radius: 0.85rem;
+        overflow: hidden;
+        min-width: 320px;
+    }
+
+    .replace-toast-header {
+        border-bottom: 0;
+    }
+
+    .replace-toast-header-success {
+        background: linear-gradient(135deg, #d1f7df 0%, #e7fff0 100%);
+    }
+
+    .replace-toast-header-warning {
+        background: linear-gradient(135deg, #fff0cd 0%, #fff8e5 100%);
+    }
+
+    .replace-toast-icon {
+        width: 1.5rem;
+        height: 1.5rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        margin-right: .5rem;
+        font-weight: 700;
+    }
+
+    .replace-toast-icon-success {
+        background-color: #198754;
+        color: #fff;
+    }
+
+    .replace-toast-icon-warning {
+        background-color: #ffc107;
+        color: #212529;
+    }
+
+    @@keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-6px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+        <h1 class="h4 mb-3">Замена DM-кодов</h1>
+        <p class="text-secondary mb-4">
+            Сначала найдите TE, затем нажмите на нужную строку и введите новый DM
+        </p>
+
+        <form method="post" asp-page-handler="Search" class="row g-3">
+            <div class="col-12 col-md-6">
+                <label asp-for="Search.TeCode" class="form-label"></label>
+                <input asp-for="Search.TeCode"
+                       class="form-control"
+                       placeholder="Например: 4412960"
+                       autocomplete="off"
+                       autofocus />
+                <span asp-validation-for="Search.TeCode" class="text-danger small"></span>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary px-4">Показать записи</button>
+                <a href="/dm/replace" class="btn btn-outline-secondary px-4">Очистить</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (Model.Errors.Count > 0)
+{
+    <div class="alert alert-danger shadow-sm" role="alert">
+        <div class="fw-semibold mb-2">Не удалось выполнить операцию</div>
+        <ul class="mb-0">
+            @foreach (var error in Model.Errors)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
+}
+
+@if (Model.UpdateSummary is not null)
+{
+    var hasUpdates = Model.UpdateSummary.UpdatedCount > 0;
+    <div class="toast-container position-fixed top-0 end-0 p-3 replace-toast-stack">
+        <div id="updateResultToast"
+             class="toast border-0 shadow replace-toast"
+             role="status"
+             aria-live="polite"
+             aria-atomic="true"
+             data-bs-delay="9000">
+            <div class="toast-header replace-toast-header @(hasUpdates ? "replace-toast-header-success" : "replace-toast-header-warning")">
+                <span class="replace-toast-icon @(hasUpdates ? "replace-toast-icon-success" : "replace-toast-icon-warning")">@(hasUpdates ? "✓" : "!")</span>
+                <strong class="me-auto">@(hasUpdates ? "Запись успешно обновлена" : "Изменений не внесено")</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+            </div>
+            <div class="toast-body">
+                <div class="mb-2">Обновлено записей: <strong>@Model.UpdateSummary.UpdatedCount</strong></div>
+
+                @if (!hasUpdates)
+                {
+                    <div class="small text-secondary mb-2">
+                        Проверьте новое значение DM и попробуйте сохранить запись снова
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@if (Model.HasResults)
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="replace-tools">
+                <div class="small text-secondary align-self-center" id="searchResultInfo"></div>
+
+                <div class="replace-search">
+                    <label for="tableFilterInput" class="form-label mb-1">Быстрый фильтр по таблице</label>
+                    <input type="search"
+                           id="tableFilterInput"
+                           class="form-control"
+                           placeholder="DM, ItemId, партия, целевой код"
+                           autocomplete="off" />
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">№</th>
+                            <th scope="col">ItemId</th>
+                            <th scope="col">Текущий DM</th>
+                            <th scope="col">TE</th>
+                            <th scope="col">Партия</th>
+                            <th scope="col">Целевой код</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.Results.Count; i++)
+                        {
+                            var row = Model.Results[i];
+
+                            <tr class="replace-row" data-row-index="@i" data-page-row="true">
+                                <td>@(i + 1)</td>
+                                <td>@row.ItemId</td>
+                                <td class="text-break">@row.Barcode</td>
+                                <td>@row.TeCode</td>
+                                <td>@row.BatchName</td>
+                                <td>@row.TargetCode</td>
+                            </tr>
+
+                            <tr class="replace-editor-row" data-editor-for="@i">
+                                <td colspan="6" class="p-0">
+                                    <div class="replace-editor-panel p-3">
+                                        <form method="post" asp-page-handler="UpdateRow" class="row g-2 align-items-end replace-editor-form">
+                                            <input type="hidden" name="teCode" value="@Model.Search.TeCode" />
+                                            <input type="hidden" name="itemId" value="@row.ItemId" />
+
+                                            <div class="col-12 col-lg-6">
+                                                <label class="form-label mb-1">Новый DM для ItemId @row.ItemId</label>
+                                                <input class="form-control"
+                                                       type="text"
+                                                       name="newDm"
+                                                       placeholder="Сканируйте или введите новое значение"
+                                                       autocomplete="off"
+                                                       spellcheck="false"
+                                                       maxlength="128"
+                                                       required />
+                                            </div>
+
+                                            <div class="col-12 col-lg-auto d-flex gap-2">
+                                                <button type="submit" class="btn btn-success">Сохранить</button>
+                                                <button type="button" class="btn btn-outline-secondary js-close-editor">Закрыть</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="replace-pagination">
+                <span class="text-secondary small" id="paginationInfo"></span>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="prevPageBtn" aria-label="Предыдущая страница">&larr;</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="nextPageBtn" aria-label="Следующая страница">&rarr;</button>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const pageSize = 25;
+            const rows = Array.from(document.querySelectorAll('.replace-row[data-page-row="true"]'));
+            const filterInput = document.getElementById("tableFilterInput");
+            const searchResultInfo = document.getElementById("searchResultInfo");
+            const info = document.getElementById("paginationInfo");
+            const prevBtn = document.getElementById("prevPageBtn");
+            const nextBtn = document.getElementById("nextPageBtn");
+            const updateToastElement = document.getElementById("updateResultToast");
+
+            if (updateToastElement && window.bootstrap?.Toast) {
+                const updateToast = bootstrap.Toast.getOrCreateInstance(updateToastElement);
+                updateToast.show();
+            }
+
+            if (rows.length === 0 || !info || !prevBtn || !nextBtn) {
+                return;
+            }
+
+            let filteredRows = rows.slice();
+            let currentPage = 1;
+
+            function getTotalPages() {
+                return Math.max(1, Math.ceil(filteredRows.length / pageSize));
+            }
+
+            function closeAllEditors() {
+                rows.forEach(function (row) {
+                    row.classList.remove("row-selected");
+                    row.classList.remove("row-disabled");
+                    row.removeAttribute("aria-disabled");
+                    row.setAttribute("aria-selected", "false");
+
+                    const index = row.dataset.rowIndex;
+                    const editor = document.querySelector('.replace-editor-row[data-editor-for="' + index + '"]');
+
+                    if (editor) {
+                        editor.classList.remove("row-expanded");
+                    }
+                });
+            }
+
+            function renderPage(page) {
+                const totalPages = getTotalPages();
+                currentPage = Math.min(Math.max(1, page), totalPages);
+
+                const start = (currentPage - 1) * pageSize;
+                const end = start + pageSize;
+
+                rows.forEach(function (row, index) {
+                    const filteredIndex = filteredRows.indexOf(row);
+                    const visible = filteredIndex >= start && filteredIndex < end;
+
+                    row.style.display = filteredIndex >= 0 && visible ? "" : "none";
+
+                    const editor = document.querySelector('.replace-editor-row[data-editor-for="' + row.dataset.rowIndex + '"]');
+                    if (editor) {
+                        editor.style.display = filteredIndex >= 0 && visible && editor.classList.contains("row-expanded")
+                            ? "table-row"
+                            : "none";
+                    }
+
+                    const rowNumberCell = row.querySelector("td:first-child");
+                    if (rowNumberCell) {
+                        rowNumberCell.textContent = filteredIndex >= 0
+                            ? String(filteredIndex + 1)
+                            : String(index + 1);
+                    }
+                });
+
+                info.textContent = "Страница " + currentPage + " из " + totalPages + " (всего записей: " + filteredRows.length + ")";
+                prevBtn.disabled = currentPage <= 1;
+                nextBtn.disabled = currentPage >= totalPages;
+
+                if (searchResultInfo) {
+                    searchResultInfo.textContent = filteredRows.length === rows.length
+                        ? "Показаны все записи"
+                        : "Найдено записей: " + filteredRows.length;
+                }
+            }
+
+            function applyFilter() {
+                const query = (filterInput?.value || "").trim().toLowerCase();
+
+                filteredRows = rows.filter(function (row) {
+                    if (!query) {
+                        return true;
+                    }
+
+                    const rowText = row.textContent?.toLowerCase() || "";
+                    return rowText.includes(query);
+                });
+
+                closeAllEditors();
+                renderPage(1);
+            }
+
+            function toggleRowEditor(row) {
+                const index = row.dataset.rowIndex;
+                const editor = document.querySelector('.replace-editor-row[data-editor-for="' + index + '"]');
+
+                if (!editor || editor.classList.contains("row-expanded")) {
+                    return;
+                }
+
+                closeAllEditors();
+
+                row.classList.add("row-selected");
+                row.setAttribute("aria-selected", "true");
+
+                editor.classList.add("row-expanded");
+                editor.style.display = "table-row";
+
+                const dmInput = editor.querySelector('input[name="newDm"]');
+                if (dmInput) {
+                    dmInput.focus();
+                    dmInput.select();
+                }
+
+                rows.forEach(function (candidate) {
+                    if (candidate !== row && candidate.style.display !== "none") {
+                        candidate.classList.add("row-disabled");
+                        candidate.setAttribute("aria-disabled", "true");
+                    }
+                });
+            }
+
+            rows.forEach(function (row) {
+                row.addEventListener("click", function (event) {
+                    if (event.target.closest("input, textarea, button, a, label, select, form")) {
+                        return;
+                    }
+
+                    toggleRowEditor(row);
+                });
+            });
+
+            prevBtn.addEventListener("click", function () {
+                if (currentPage > 1) {
+                    closeAllEditors();
+                    renderPage(currentPage - 1);
+                }
+            });
+
+            nextBtn.addEventListener("click", function () {
+                if (currentPage < getTotalPages()) {
+                    closeAllEditors();
+                    renderPage(currentPage + 1);
+                }
+            });
+
+            if (filterInput) {
+                filterInput.addEventListener("input", applyFilter);
+            }
+
+            document.querySelectorAll(".replace-editor-form").forEach(function (form) {
+                form.addEventListener("keydown", function (event) {
+                    if (event.key === "Escape") {
+                        closeAllEditors();
+                        renderPage(currentPage);
+                    }
+                });
+
+                const closeButton = form.querySelector(".js-close-editor");
+                if (closeButton) {
+                    closeButton.addEventListener("click", function () {
+                        closeAllEditors();
+                        renderPage(currentPage);
+                    });
+                }
+            });
+
+            renderPage(1);
+        });
+    </script>
+}
