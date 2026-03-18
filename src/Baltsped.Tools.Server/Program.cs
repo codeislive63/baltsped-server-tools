@@ -1,21 +1,26 @@
 using Baltsped.Tools.Server.Database.Extensions;
 using Baltsped.Tools.Server.Features.DmReplace;
+using Baltsped.Tools.Server.Logging;
 using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var logDirectory = LogPathResolver.GetLogDirectory();
+var logFilePath = Path.Combine(logDirectory, "baltsped-tools-.log");
+
 builder.Host.UseSerilog((context, services, configuration) =>
-    configuration
-        .ReadFrom.Configuration(context.Configuration)
-        .ReadFrom.Services(services)
-        .Enrich.FromLogContext()
-        .WriteTo.Console()
-        .WriteTo.File(
-            path: "Logs/baltsped-tools-.log",
-            rollingInterval: RollingInterval.Day,
-            retainedFileCountLimit: 14,
-            shared: true));
+    configuration.ReadFrom.Configuration(context.Configuration)
+                 .ReadFrom.Services(services)
+                 .Enrich.FromLogContext()
+                 .WriteTo.Console()
+                 .WriteTo.File(
+                     path: logFilePath,
+                     rollingInterval: RollingInterval.Day,
+                     retainedFileCountLimit: 14,
+                     shared: true
+                 )
+);
 
 builder.Services.AddRazorPages();
 builder.Services.AddDatabase(builder.Configuration);
@@ -67,6 +72,7 @@ static bool IsHttpsConfigured(IConfiguration configuration)
     }
 
     var rawUrls = configuration["ASPNETCORE_URLS"] ?? configuration["urls"];
+
     if (string.IsNullOrWhiteSpace(rawUrls))
     {
         return false;
@@ -76,5 +82,6 @@ static bool IsHttpsConfigured(IConfiguration configuration)
 
     return urls.Any(url =>
         Uri.TryCreate(url, UriKind.Absolute, out var uri)
-        && uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase));
+        && uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+    );
 }

@@ -126,12 +126,11 @@
     <div class="card-body p-4">
         <h1 class="h4 mb-3">Замена DM-кодов</h1>
         <p class="text-secondary mb-4">
-            Сначала найдите TE, затем нажмите на нужную строку и введите новый DM
+            Введите TE, затем нажмите на запись и укажите новое значение
         </p>
 
         <form method="post" asp-page-handler="Search" class="row g-3">
             <div class="col-12 col-md-6">
-                <label asp-for="Search.TeCode" class="form-label"></label>
                 <input asp-for="Search.TeCode"
                        class="form-control"
                        placeholder="Например: 4412960"

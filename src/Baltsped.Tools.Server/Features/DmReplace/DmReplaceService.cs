@@ -48,10 +48,10 @@ public sealed class DmReplaceService(
     /// Обновляет DM код для одной строки
     /// </summary>
     public Task<DmReplaceUpdateResultModel> UpdateAsync(
-        string teCode,
-        int itemId,
-        string newDm,
-        CancellationToken cancellationToken)
+    string teCode,
+    int itemId,
+    string newDm,
+    CancellationToken cancellationToken)
     {
         if (itemId <= 0)
         {
@@ -64,11 +64,17 @@ public sealed class DmReplaceService(
         return toolsDbExecutor.ExecuteAsync(async (dbContext, ct) =>
         {
             var article = await dbContext.Articles
+                .AsNoTracking()
                 .Where(x => x.ItemId == itemId
                     && x.Container != null
                     && x.Container.Code == normalizedTeCode)
+                .Select(x => new
+                {
+                    x.ItemId,
+                    x.Barcode
+                })
                 .SingleOrDefaultAsync(ct) ?? throw new ValidationException("Запись для обновления не найдена");
-            
+
             if (string.Equals(article.Barcode, normalizedDm, StringComparison.Ordinal))
             {
                 DmReplaceLogMessages.UpdateSkippedBecauseUnchanged(logger, itemId, normalizedTeCode);
@@ -86,7 +92,15 @@ public sealed class DmReplaceService(
             }
 
             var previousDm = article.Barcode;
-            article.Barcode = normalizedDm;
+
+            var entity = new Database.Entities.Article
+            {
+                ItemId = article.ItemId,
+                Barcode = normalizedDm
+            };
+
+            dbContext.Attach(entity);
+            dbContext.Entry(entity).Property(x => x.Barcode).IsModified = true;
 
             await dbContext.SaveChangesAsync(ct);
 
@@ -98,11 +112,11 @@ public sealed class DmReplaceService(
                 UpdatedItems =
                 [
                     new DmChangedItemModel
-                    {
-                        ItemId = itemId,
-                        PreviousDm = previousDm,
-                        NewDm = normalizedDm
-                    }
+                {
+                    ItemId = itemId,
+                    PreviousDm = previousDm,
+                    NewDm = normalizedDm
+                }
                 ]
             };
         }, cancellationToken);
