@@ -1,0 +1,18 @@
+﻿@model Baltsped.Tools.Server.Pages.Shared.PageHeroModel
+
+<div class="card border-0 shadow-sm page-hero mb-4">
+    <div class="card-body p-4 p-lg-5">
+        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+            <div>
+                <h1 class="h3 mb-2">@Model.Title</h1>
+                <p class="text-secondary mb-0">
+                    @Model.Description
+                </p>
+            </div>
+
+            <a asp-page="@Model.BackPage" class="btn btn-outline-secondary">
+                @Model.BackText
+            </a>
+        </div>
+    </div>
+</div>
