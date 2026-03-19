@@ -109,6 +109,16 @@
         color: #212529;
     }
 
+    .replace-toast-dm-old {
+        color: #6c757d;
+        text-decoration: line-through;
+    }
+
+    .replace-toast-dm-new {
+        font-weight: 600;
+        color: #198754;
+    }
+
     @@keyframes slideDown {
         from {
             opacity: 0;
@@ -163,6 +173,7 @@
 @if (Model.UpdateSummary is not null)
 {
     var hasUpdates = Model.UpdateSummary.UpdatedCount > 0;
+
     <div class="toast-container position-fixed top-0 end-0 p-3 replace-toast-stack">
         <div id="updateResultToast"
              class="toast border-0 shadow replace-toast"
@@ -176,7 +187,23 @@
                 <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>
             </div>
             <div class="toast-body">
-                <div class="mb-2">Обновлено записей: <strong>@Model.UpdateSummary.UpdatedCount</strong></div>
+                <div class="mb-2">
+                    Обновлено записей: <strong>@Model.UpdateSummary.UpdatedCount</strong>
+                </div>
+
+                @if (hasUpdates && Model.UpdateSummary.UpdatedItems.Count > 0)
+                {
+                    var item = Model.UpdateSummary.UpdatedItems.First();
+
+                    <div class="small">
+                        <div class="fw-semibold mb-1">ID @item.ItemId</div>
+                        <div class="text-break">
+                            <span class="replace-toast-dm-old">@item.PreviousDm</span>
+                            <span class="mx-1">→</span>
+                            <span class="replace-toast-dm-new">@item.NewDm</span>
+                        </div>
+                    </div>
+                }
 
                 @if (!hasUpdates)
                 {
@@ -201,7 +228,7 @@
                     <input type="search"
                            id="tableFilterInput"
                            class="form-control"
-                           placeholder="DM, ItemId, партия, целевой код"
+                           placeholder="DM, ID, партия, целевой код"
                            autocomplete="off" />
                 </div>
             </div>
@@ -211,7 +238,7 @@
                     <thead class="table-light">
                         <tr>
                             <th scope="col">№</th>
-                            <th scope="col">ItemId</th>
+                            <th scope="col">ID</th>
                             <th scope="col">Текущий DM</th>
                             <th scope="col">TE</th>
                             <th scope="col">Партия</th>
@@ -240,7 +267,7 @@
                                             <input type="hidden" name="itemId" value="@row.ItemId" />
 
                                             <div class="col-12 col-lg-6">
-                                                <label class="form-label mb-1">Новый DM для ItemId @row.ItemId</label>
+                                                <label class="form-label mb-1">Новый DM для ID @row.ItemId</label>
                                                 <input class="form-control"
                                                        type="text"
                                                        name="newDm"
