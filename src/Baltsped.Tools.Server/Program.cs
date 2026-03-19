@@ -1,3 +1,4 @@
+using Baltsped.Tools.Server.Database.Oracle.Extensions;
 using Baltsped.Tools.Server.Database.SqlServer.Extensions;
 using Baltsped.Tools.Server.Features.DmReplace;
 using Baltsped.Tools.Server.Logging;
@@ -22,7 +23,10 @@ builder.Host.UseSerilog((context, services, configuration) =>
 );
 
 builder.Services.AddRazorPages();
+
 builder.Services.AddSqlServerDatabase(builder.Configuration);
+builder.Services.AddOracleDatabase();
+
 builder.Services.AddScoped<IDmReplaceService, DmReplaceService>();
 
 var app = builder.Build();
