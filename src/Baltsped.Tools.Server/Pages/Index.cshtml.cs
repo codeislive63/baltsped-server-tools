@@ -32,7 +32,7 @@ public sealed class IndexModel : PageModel
             Title = "Просмотр содержимого ТЕ",
             Description = "Просмотр содержимого по номеру ТЕ",
             Route = "/te/lookup",
-            IsAvailable = false
+            IsAvailable = true
         },
         new CatalogToolModel
         {

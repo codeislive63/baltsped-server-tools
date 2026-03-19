@@ -1,0 +1,287 @@
+﻿@page
+@using System.Linq
+@using Baltsped.Tools.Server.Pages.Shared
+@model Baltsped.Tools.Server.Pages.Te.LookupModel
+@{
+    ViewData["Title"] = "Просмотр содержимого ТЕ";
+}
+
+<style>
+    .lookup-table th {
+        white-space: nowrap;
+    }
+
+    .lookup-tools {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: .75rem;
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+        background-color: #f8f9fb;
+    }
+
+    .lookup-search {
+        max-width: 420px;
+        width: 100%;
+    }
+
+    .lookup-pagination {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: .5rem;
+        padding: .75rem 1rem;
+        border-top: 1px solid #dee2e6;
+        background-color: #f8f9fb;
+    }
+
+    .lookup-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .lookup-summary-card {
+        border: 1px solid #e9ecef;
+        border-radius: 1rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        padding: 1rem 1.25rem;
+    }
+
+    .lookup-summary-label {
+        font-size: .85rem;
+        color: #6c757d;
+        margin-bottom: .35rem;
+    }
+
+    .lookup-summary-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1.1;
+        color: #212529;
+    }
+</style>
+
+@await Html.PartialAsync("_PageHero", new PageHeroModel
+{
+    Title = "Просмотр содержимого ТЕ",
+    Description = "Введите номер ТЕ, чтобы загрузить его содержимое"
+})
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+        <form method="get" asp-page="/Te/Lookup">
+            <div class="tool-form-block">
+                <label asp-for="TeCode" class="form-label">Номер ТЕ</label>
+
+                <input asp-for="TeCode"
+                       class="form-control"
+                       placeholder="Например: 4412615"
+                       autocomplete="off"
+                       spellcheck="false"
+                       maxlength="32"
+                       autofocus />
+
+                <div class="tool-form-actions mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        Показать записи
+                    </button>
+
+                    <a asp-page="/Te/Lookup" class="btn btn-outline-secondary">
+                        Очистить
+                    </a>
+                </div>
+            </div>
+        </form>
+
+        @if (Model.SearchPerformed && !Model.ModelState.IsValid)
+        {
+            <div asp-validation-summary="All" class="alert alert-danger mt-3 mb-0"></div>
+        }
+    </div>
+</div>
+
+@if (Model.Rows.Count > 0)
+{
+    var uniqueArticlesCount = Model.Rows
+        .Select(row => row.ArticleCode)
+        .Where(value => !string.IsNullOrWhiteSpace(value))
+        .Distinct(StringComparer.Ordinal)
+        .Count();
+
+    var uniqueBarcodesCount = Model.Rows
+        .Select(row => row.Barcode)
+        .Where(value => !string.IsNullOrWhiteSpace(value))
+        .Distinct(StringComparer.Ordinal)
+        .Count();
+
+    <div class="lookup-summary-grid">
+        <div class="lookup-summary-card shadow-sm">
+            <div class="lookup-summary-label">Найдено строк</div>
+            <div class="lookup-summary-value">@Model.Rows.Count</div>
+        </div>
+
+        <div class="lookup-summary-card shadow-sm">
+            <div class="lookup-summary-label">Уникальных штрихкодов</div>
+            <div class="lookup-summary-value">@uniqueBarcodesCount</div>
+        </div>
+
+        <div class="lookup-summary-card shadow-sm">
+            <div class="lookup-summary-label">Уникальных артикулов</div>
+            <div class="lookup-summary-value">@uniqueArticlesCount</div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="lookup-tools">
+                <div class="small text-secondary align-self-center" id="searchResultInfo"></div>
+
+                <div class="lookup-search">
+                    <label for="tableFilterInput" class="form-label mb-1">Быстрый фильтр по таблице</label>
+                    <input type="search"
+                           id="tableFilterInput"
+                           class="form-control"
+                           placeholder="ТЕ, артикул, наименование, штрихкод, код партии"
+                           autocomplete="off" />
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 lookup-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">№</th>
+                            <th scope="col">ТЕ</th>
+                            <th scope="col">Артикул</th>
+                            <th scope="col">Наименование</th>
+                            <th scope="col">Штрихкод</th>
+                            <th scope="col">Код партии</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.Rows.Count; i++)
+                        {
+                            var row = Model.Rows[i];
+
+                            <tr class="lookup-row" data-row-index="@i" data-page-row="true">
+                                <td>@(i + 1)</td>
+                                <td>@row.TeCode</td>
+                                <td>@row.ArticleCode</td>
+                                <td>@row.ArticleName</td>
+                                <td>@row.Barcode</td>
+                                <td>@row.BatchCode</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="lookup-pagination">
+                <span class="text-secondary small" id="paginationInfo"></span>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="prevPageBtn" aria-label="Предыдущая страница">&larr;</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="nextPageBtn" aria-label="Следующая страница">&rarr;</button>
+            </div>
+        </div>
+    </div>
+}
+else if (Model.SearchPerformed && Model.ModelState.IsValid)
+{
+    <div class="page-empty p-4 text-center text-secondary">
+        По указанному номеру ТЕ ничего не найдено
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const pageSize = 25;
+            const rows = Array.from(document.querySelectorAll('.lookup-row[data-page-row="true"]'));
+            const filterInput = document.getElementById("tableFilterInput");
+            const searchResultInfo = document.getElementById("searchResultInfo");
+            const info = document.getElementById("paginationInfo");
+            const prevBtn = document.getElementById("prevPageBtn");
+            const nextBtn = document.getElementById("nextPageBtn");
+
+            if (rows.length === 0 || !info || !prevBtn || !nextBtn) {
+                return;
+            }
+
+            let filteredRows = rows.slice();
+            let currentPage = 1;
+
+            function getTotalPages() {
+                return Math.max(1, Math.ceil(filteredRows.length / pageSize));
+            }
+
+            function renderPage(page) {
+                const totalPages = getTotalPages();
+                currentPage = Math.min(Math.max(1, page), totalPages);
+
+                const start = (currentPage - 1) * pageSize;
+                const end = start + pageSize;
+
+                rows.forEach(function (row, index) {
+                    const filteredIndex = filteredRows.indexOf(row);
+                    const visible = filteredIndex >= start && filteredIndex < end;
+
+                    row.style.display = filteredIndex >= 0 && visible ? "" : "none";
+
+                    const rowNumberCell = row.querySelector("td:first-child");
+                    if (rowNumberCell) {
+                        rowNumberCell.textContent = filteredIndex >= 0
+                            ? String(filteredIndex + 1)
+                            : String(index + 1);
+                    }
+                });
+
+                info.textContent = "Страница " + currentPage + " из " + totalPages + " (всего записей: " + filteredRows.length + ")";
+                prevBtn.disabled = currentPage <= 1;
+                nextBtn.disabled = currentPage >= totalPages;
+
+                if (searchResultInfo) {
+                    searchResultInfo.textContent = filteredRows.length === rows.length
+                        ? "Показаны все записи"
+                        : "Найдено записей: " + filteredRows.length;
+                }
+            }
+
+            function applyFilter() {
+                const query = (filterInput?.value || "").trim().toLowerCase();
+
+                filteredRows = rows.filter(function (row) {
+                    if (!query) {
+                        return true;
+                    }
+
+                    const rowText = row.textContent?.toLowerCase() || "";
+                    return rowText.includes(query);
+                });
+
+                renderPage(1);
+            }
+
+            prevBtn.addEventListener("click", function () {
+                if (currentPage > 1) {
+                    renderPage(currentPage - 1);
+                }
+            });
+
+            nextBtn.addEventListener("click", function () {
+                if (currentPage < getTotalPages()) {
+                    renderPage(currentPage + 1);
+                }
+            });
+
+            if (filterInput) {
+                filterInput.addEventListener("input", applyFilter);
+            }
+
+            renderPage(1);
+        });
+    </script>
+}
