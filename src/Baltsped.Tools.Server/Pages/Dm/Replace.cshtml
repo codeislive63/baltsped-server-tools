@@ -1,4 +1,5 @@
 ﻿@page "/dm/replace"
+@using Baltsped.Tools.Server.Pages.Shared
 @model Baltsped.Tools.Server.Pages.Dm.ReplaceModel
 @{
     ViewData["Title"] = "Замена DM-кодов";
@@ -132,26 +133,37 @@
     }
 </style>
 
+@await Html.PartialAsync("_PageHero", new PageHeroModel
+{
+    Title = "Замена DM-кодов",
+    Description = "Введите TE, затем выберите запись и укажите новое значение"
+})
+
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-body p-4">
-        <h1 class="h4 mb-3">Замена DM-кодов</h1>
-        <p class="text-secondary mb-4">
-            Введите TE, затем нажмите на запись и укажите новое значение
-        </p>
+        <form method="post" asp-page-handler="Search">
+            <div class="tool-form-block">
+                <label asp-for="Search.TeCode" class="form-label">Номер ТЕ</label>
 
-        <form method="post" asp-page-handler="Search" class="row g-3">
-            <div class="col-12 col-md-6">
                 <input asp-for="Search.TeCode"
                        class="form-control"
                        placeholder="Например: 4412960"
                        autocomplete="off"
+                       spellcheck="false"
+                       maxlength="32"
                        autofocus />
-                <span asp-validation-for="Search.TeCode" class="text-danger small"></span>
-            </div>
 
-            <div class="col-12 d-flex gap-2">
-                <button type="submit" class="btn btn-primary px-4">Показать записи</button>
-                <a href="/dm/replace" class="btn btn-outline-secondary px-4">Очистить</a>
+                <span asp-validation-for="Search.TeCode" class="text-danger small d-block mt-1"></span>
+
+                <div class="tool-form-actions mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        Показать записи
+                    </button>
+
+                    <a href="/dm/replace" class="btn btn-outline-secondary">
+                        Очистить
+                    </a>
+                </div>
             </div>
         </form>
     </div>
@@ -238,9 +250,9 @@
                     <thead class="table-light">
                         <tr>
                             <th scope="col">№</th>
-                            <th scope="col">ID</th>
-                            <th scope="col">Текущий DM</th>
                             <th scope="col">TE</th>
+                            <th scope="col">ID</th>
+                            <th scope="col">Текущий DM код</th>
                             <th scope="col">Партия</th>
                             <th scope="col">Целевой код</th>
                         </tr>
@@ -252,9 +264,9 @@
 
                             <tr class="replace-row" data-row-index="@i" data-page-row="true">
                                 <td>@(i + 1)</td>
+                                <td>@row.TeCode</td>
                                 <td>@row.ItemId</td>
                                 <td class="text-break">@row.Barcode</td>
-                                <td>@row.TeCode</td>
                                 <td>@row.BatchName</td>
                                 <td>@row.TargetCode</td>
                             </tr>
