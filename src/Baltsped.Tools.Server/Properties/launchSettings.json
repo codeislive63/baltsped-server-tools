@@ -8,15 +8,6 @@
       },
       "dotnetRunMessages": true,
       "applicationUrl": "http://0.0.0.0:5270"
-    },
-    "https": {
-      "commandName": "Project",
-      "launchBrowser": true,
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      },
-      "dotnetRunMessages": true,
-      "applicationUrl": "https://0.0.0.0:7087;http://0.0.0.0:5270"
     }
   },
   "$schema": "https://json.schemastore.org/launchsettings.json"
