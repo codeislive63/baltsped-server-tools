@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Baltsped.Tools.Server.Database.SqlServer.Access;
+using Baltsped.Tools.Server.Database.SqlServer.Entities;
 using Baltsped.Tools.Server.Features.DmReplace.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -93,7 +94,7 @@ public sealed class DmReplaceService(
 
             var previousDm = article.Barcode;
 
-            var entity = new Database.Entities.Article
+            var entity = new Article
             {
                 ItemId = article.ItemId,
                 Barcode = normalizedDm

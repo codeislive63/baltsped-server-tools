@@ -10,7 +10,7 @@ namespace Baltsped.Tools.Server.Database.SqlServer.Extensions;
 /// <summary>
 /// Регистрирует доступ к SQL Server и Windows impersonation
 /// </summary>
-public static class DatabaseServiceCollectionExtensions
+public static class SqlServerServiceCollectionExtensions
 {
     public static IServiceCollection AddSqlServerDatabase(this IServiceCollection services, IConfiguration configuration)
     {
