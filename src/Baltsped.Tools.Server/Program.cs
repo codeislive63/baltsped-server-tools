@@ -1,4 +1,4 @@
-using Baltsped.Tools.Server.Database.Extensions;
+using Baltsped.Tools.Server.Database.SqlServer.Extensions;
 using Baltsped.Tools.Server.Features.DmReplace;
 using Baltsped.Tools.Server.Logging;
 using Serilog;
@@ -22,7 +22,7 @@ builder.Host.UseSerilog((context, services, configuration) =>
 );
 
 builder.Services.AddRazorPages();
-builder.Services.AddDatabase(builder.Configuration);
+builder.Services.AddSqlServerDatabase(builder.Configuration);
 builder.Services.AddScoped<IDmReplaceService, DmReplaceService>();
 
 var app = builder.Build();

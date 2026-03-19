@@ -1,7 +1,8 @@
 ﻿using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
-using Baltsped.Tools.Server.Database.Access;
+using Baltsped.Tools.Server.Database.SqlServer.Access;
+using Baltsped.Tools.Server.Database.SqlServer.Security;
 using Microsoft.Extensions.Options;
 using Microsoft.Win32.SafeHandles;
 
@@ -9,13 +10,13 @@ namespace Baltsped.Tools.Server.Database.Security;
 
 // Выполняет операции под доменной учетной записью, указанной в настройках приложения
 public sealed partial class WindowsImpersonationService(
-    IOptions<DatabaseOptions> options,
+    IOptions<SqlServerDatabaseOptions> options,
     ILogger<WindowsImpersonationService> logger) : IWindowsImpersonationService
 {
     private const int Logon32LogonNewCredentials = 9;
     private const int Logon32ProviderDefault = 3;
 
-    private readonly DatabaseOptions _options = options.Value;
+    private readonly SqlServerDatabaseOptions _options = options.Value;
 
     public T Run<T>(Func<T> action)
     {

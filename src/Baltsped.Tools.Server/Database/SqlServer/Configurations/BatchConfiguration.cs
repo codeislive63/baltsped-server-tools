@@ -1,8 +1,8 @@
-﻿using Baltsped.Tools.Server.Database.Entities;
+﻿using Baltsped.Tools.Server.Database.SqlServer.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Baltsped.Tools.Server.Database.Configurations;
+namespace Baltsped.Tools.Server.Database.SqlServer.Configurations;
 
 // Конфигурация таблицы Batch для EF Core
 internal class BatchConfiguration : IEntityTypeConfiguration<Batch>

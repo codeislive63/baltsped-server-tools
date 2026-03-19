@@ -1,4 +1,4 @@
-﻿namespace Baltsped.Tools.Server.Database.Security;
+﻿namespace Baltsped.Tools.Server.Database.SqlServer.Security;
 
 /// <summary>
 /// Выполняет код под доменной учетной записью для доступа к SQL Server

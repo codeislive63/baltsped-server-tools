@@ -1,11 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Baltsped.Tools.Server.Database.Access;
+namespace Baltsped.Tools.Server.Database.SqlServer.Access;
 
 /// <summary>
 /// Настройки подключения к SQL Server через Windows impersonation
 /// </summary>
-public sealed class DatabaseOptions
+public sealed class SqlServerDatabaseOptions
 {
     public const string SectionName = "Database";
 

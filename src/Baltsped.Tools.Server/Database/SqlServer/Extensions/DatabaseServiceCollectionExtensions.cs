@@ -1,28 +1,29 @@
-﻿using Baltsped.Tools.Server.Database.Access;
-using Baltsped.Tools.Server.Database.Security;
+﻿using Baltsped.Tools.Server.Database.Security;
+using Baltsped.Tools.Server.Database.SqlServer.Access;
+using Baltsped.Tools.Server.Database.SqlServer.Security;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
-namespace Baltsped.Tools.Server.Database.Extensions;
+namespace Baltsped.Tools.Server.Database.SqlServer.Extensions;
 
 /// <summary>
 /// Регистрирует доступ к SQL Server и Windows impersonation
 /// </summary>
 public static class DatabaseServiceCollectionExtensions
 {
-    public static IServiceCollection AddDatabase(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddSqlServerDatabase(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddOptions<DatabaseOptions>()
-                .Bind(configuration.GetSection(DatabaseOptions.SectionName))
+        services.AddOptions<SqlServerDatabaseOptions>()
+                .Bind(configuration.GetSection(SqlServerDatabaseOptions.SectionName))
                 .ValidateOnStart();
 
-        services.AddSingleton<IValidateOptions<DatabaseOptions>, DatabaseOptionsValidator>();
+        services.AddSingleton<IValidateOptions<SqlServerDatabaseOptions>, SqlServerDatabaseOptionsValidator>();
         services.AddSingleton<IWindowsImpersonationService, WindowsImpersonationService>();
 
-        services.AddDbContextFactory<BaltspedToolsDbContext>((serviceProvider, options) =>
+        services.AddDbContextFactory<BaltspedToolsSqlServerDbContext>((serviceProvider, options) =>
         {
-            var databaseOptions = serviceProvider.GetRequiredService<IOptions<DatabaseOptions>>().Value;
+            var databaseOptions = serviceProvider.GetRequiredService<IOptions<SqlServerDatabaseOptions>>().Value;
 
             var connectionString = new SqlConnectionStringBuilder
             {

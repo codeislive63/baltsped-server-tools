@@ -1,4 +1,4 @@
-namespace Baltsped.Tools.Server.Database.Entities;
+namespace Baltsped.Tools.Server.Database.SqlServer.Entities;
 
 /// <summary>
 /// Партия, к которой относятся записи Article

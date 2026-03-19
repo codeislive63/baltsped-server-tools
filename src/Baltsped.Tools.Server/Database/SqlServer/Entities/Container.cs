@@ -1,4 +1,4 @@
-namespace Baltsped.Tools.Server.Database.Entities;
+namespace Baltsped.Tools.Server.Database.SqlServer.Entities;
 
 /// <summary>
 /// Сущность TE-контейнера, в котором находятся записи Article

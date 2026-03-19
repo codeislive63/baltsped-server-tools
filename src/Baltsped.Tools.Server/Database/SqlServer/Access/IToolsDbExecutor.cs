@@ -1,4 +1,6 @@
-﻿namespace Baltsped.Tools.Server.Database.Access;
+﻿using Baltsped.Tools.Server.Database.SqlServer;
+
+namespace Baltsped.Tools.Server.Database.SqlServer.Access;
 
 /// <summary>
 /// Выполняет операции с контекстом БД внутри impersonation scope
@@ -6,13 +8,13 @@
 public interface IToolsDbExecutor
 {
     Task<T> ExecuteAsync<T>(
-        Func<BaltspedToolsDbContext, CancellationToken, 
+        Func<BaltspedToolsSqlServerDbContext, CancellationToken, 
         Task<T>> action,
         CancellationToken cancellationToken = default
     );
 
     Task ExecuteAsync(
-        Func<BaltspedToolsDbContext, CancellationToken,
+        Func<BaltspedToolsSqlServerDbContext, CancellationToken,
         Task> action,
         CancellationToken cancellationToken = default
     );

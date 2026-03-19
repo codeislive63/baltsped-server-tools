@@ -1,5 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using Baltsped.Tools.Server.Database.Access;
+using Baltsped.Tools.Server.Database.SqlServer.Access;
 using Baltsped.Tools.Server.Features.DmReplace.Models;
 using Microsoft.EntityFrameworkCore;
 

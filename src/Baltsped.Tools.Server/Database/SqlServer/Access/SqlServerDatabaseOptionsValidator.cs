@@ -1,11 +1,11 @@
 ﻿using Microsoft.Extensions.Options;
 
-namespace Baltsped.Tools.Server.Database.Access;
+namespace Baltsped.Tools.Server.Database.SqlServer.Access;
 
 // Проверяет, что настройки базы и impersonation заполнены до старта приложения
-public sealed class DatabaseOptionsValidator : IValidateOptions<DatabaseOptions>
+public sealed class SqlServerDatabaseOptionsValidator : IValidateOptions<SqlServerDatabaseOptions>
 {
-    public ValidateOptionsResult Validate(string? name, DatabaseOptions options)
+    public ValidateOptionsResult Validate(string? name, SqlServerDatabaseOptions options)
     {
         var errors = new List<string>();
 

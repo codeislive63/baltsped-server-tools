@@ -1,18 +1,19 @@
-﻿using Baltsped.Tools.Server.Database.Security;
+﻿using Baltsped.Tools.Server.Database.SqlServer;
+using Baltsped.Tools.Server.Database.SqlServer.Security;
 using Microsoft.EntityFrameworkCore;
 
-namespace Baltsped.Tools.Server.Database.Access;
+namespace Baltsped.Tools.Server.Database.SqlServer.Access;
 
 /// <summary>
 /// Создает контекст и выполняет запрос целиком внутри Windows impersonation
 /// </summary>
 public sealed class WindowsImpersonationToolsDbExecutor(
-    IDbContextFactory<BaltspedToolsDbContext> dbContextFactory,
+    IDbContextFactory<BaltspedToolsSqlServerDbContext> dbContextFactory,
     IWindowsImpersonationService windowsImpersonationService)
     : IToolsDbExecutor
 {
     public Task<T> ExecuteAsync<T>(
-        Func<BaltspedToolsDbContext, CancellationToken,
+        Func<BaltspedToolsSqlServerDbContext, CancellationToken,
         Task<T>> action,
         CancellationToken cancellationToken = default)
     {
@@ -28,7 +29,7 @@ public sealed class WindowsImpersonationToolsDbExecutor(
     }
 
     public Task ExecuteAsync(
-        Func<BaltspedToolsDbContext, CancellationToken,
+        Func<BaltspedToolsSqlServerDbContext, CancellationToken,
         Task> action,
         CancellationToken cancellationToken = default)
     {

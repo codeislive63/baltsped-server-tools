@@ -1,4 +1,4 @@
-namespace Baltsped.Tools.Server.Database.Entities;
+namespace Baltsped.Tools.Server.Database.SqlServer.Entities;
 
 /// <summary>
 /// Запись изделия в сортировочной базе с привязкой к TE, партии и целевому направлению
