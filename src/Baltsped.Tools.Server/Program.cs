@@ -1,6 +1,8 @@
 using Baltsped.Tools.Server.Database.Oracle.Extensions;
 using Baltsped.Tools.Server.Database.SqlServer.Extensions;
 using Baltsped.Tools.Server.Features.DmReplace;
+using Baltsped.Tools.Server.Features.TeLookup.Repository;
+using Baltsped.Tools.Server.Features.TeLookup.Service;
 using Baltsped.Tools.Server.Logging;
 using Serilog;
 
@@ -24,10 +26,16 @@ builder.Host.UseSerilog((context, services, configuration) =>
 
 builder.Services.AddRazorPages();
 
+// Db
 builder.Services.AddSqlServerDatabase(builder.Configuration);
 builder.Services.AddOracleDatabase();
 
+// Service
 builder.Services.AddScoped<IDmReplaceService, DmReplaceService>();
+builder.Services.AddScoped<ITeLookupService, TeLookupService>();
+
+// Repository
+builder.Services.AddScoped<ITeLookupRepository, TeLookupRepository>();
 
 var app = builder.Build();
 
