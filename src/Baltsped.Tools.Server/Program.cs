@@ -54,7 +54,6 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthorization();
 
-app.MapGet("/", () => Results.Redirect("/dm/replace"));
 app.MapRazorPages();
 
 app.Run();
