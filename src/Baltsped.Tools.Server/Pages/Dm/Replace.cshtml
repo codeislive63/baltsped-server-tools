@@ -1,358 +1,101 @@
-﻿@page "/dm/replace"
-@using Baltsped.Tools.Server.Pages.Shared
+@page "/dm/replace"
 @model Baltsped.Tools.Server.Pages.Dm.ReplaceModel
 @{
     ViewData["Title"] = "Замена DM-кодов";
 }
 
-@await Html.PartialAsync("_PageHero", new PageHeroModel
-{
-    Title = "Замена DM-кодов",
-    Description = "Найдите записи по ТЕ, выберите нужную строку и укажите новый DataMatrix-код"
-})
+<header class="mb-8">
+    <h1 class="text-3xl font-bold tracking-tight text-brand-text mb-2">Замена DM-кодов</h1>
+    <p class="text-brand-text-muted text-sm max-w-2xl">
+        Инструмент для оперативной замены поврежденных или некорректных DataMatrix кодов в рамках транспортной единицы.
+    </p>
+</header>
 
-<div class="tool-panel mb-4">
-    <form method="post" asp-page-handler="Search" class="tool-form-grid">
-        <div class="tool-form-group">
-            <label asp-for="Search.TeCode">Номер ТЕ</label>
-            <input asp-for="Search.TeCode"
-                   class="form-control tool-input"
-                   placeholder="Например: 4412960"
-                   autocomplete="off"
-                   spellcheck="false"
-                   maxlength="32"
-                   autofocus />
-            <span asp-validation-for="Search.TeCode" class="text-danger small d-block mt-2"></span>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="lg:col-span-1 space-y-6">
+        <div class="card-brand p-6">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-brand-text-muted mb-4 flex items-center gap-2">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 4h16M7 12h10M10 20h4" stroke-linecap="round"/></svg>
+                Поиск ТЕ
+            </h3>
+            <form method="post" asp-page-handler="Search" class="space-y-4">
+                <div>
+                    <label asp-for="Search.TeCode" class="block text-xs font-bold text-brand-text-dim uppercase mb-1.5">Номер ТЕ</label>
+                    <input asp-for="Search.TeCode" type="text" class="input-field" placeholder="Напр. TE-99281" />
+                </div>
+                <button type="submit" class="btn-primary w-full">Загрузить данные</button>
+            </form>
         </div>
 
-        <button type="submit" class="btn-tool btn-tool--primary">Показать записи</button>
-        <a href="/dm/replace" class="btn-tool btn-tool--secondary">Очистить</a>
-    </form>
-</div>
-
-@if (Model.Errors.Count > 0)
-{
-    <div class="tool-alert tool-alert--danger mb-4" role="alert">
-        <div class="tool-alert__title">Не удалось выполнить операцию</div>
-        <ul>
-            @foreach (var error in Model.Errors)
-            {
-                <li>@error</li>
-            }
-        </ul>
-    </div>
-}
-
-@if (Model.UpdateSummary is not null)
-{
-    var hasUpdates = Model.UpdateSummary.UpdatedCount > 0;
-
-    <div class="toast-container position-fixed top-0 end-0 p-3 tool-toast-stack">
-        <div id="updateResultToast"
-             class="toast border-0 tool-toast"
-             role="status"
-             aria-live="polite"
-             aria-atomic="true"
-             data-bs-delay="9000">
-            <div class="tool-toast__header @(hasUpdates ? "tool-toast__header--success" : "tool-toast__header--warning")">
-                <strong class="tool-toast__title">@(hasUpdates ? "Запись обновлена" : "Изменений не внесено")</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>
-            </div>
-            <div class="tool-toast__body">
-                <div class="mb-2">Обновлено записей: <strong>@Model.UpdateSummary.UpdatedCount</strong></div>
-
-                @if (hasUpdates && Model.UpdateSummary.UpdatedItems.Count > 0)
-                {
-                    var item = Model.UpdateSummary.UpdatedItems.First();
-
-                    <div class="small">
-                        <div class="fw-semibold mb-1">ID записи @item.ItemId</div>
-                        <div class="text-break">
-                            <span class="tool-toast__dm-old">@item.PreviousDm</span>
-                            <span class="mx-1">→</span>
-                            <span class="tool-toast__dm-new">@item.NewDm</span>
-                        </div>
-                    </div>
-                }
-
-                @if (!hasUpdates)
-                {
-                    <div class="small text-secondary">
-                        Проверьте новое значение DM и попробуйте сохранить запись снова.
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-}
-
-@if (Model.HasResults)
-{
-    <section class="tool-card tool-table-card">
-        <div class="tool-table-toolbar">
-            <div class="tool-table-toolbar__info" id="searchResultInfo"></div>
-
-            <div class="tool-filter">
-                <label for="tableFilterInput">Быстрый фильтр по таблице</label>
-                <input type="search"
-                       id="tableFilterInput"
-                       class="form-control tool-filter-input"
-                       placeholder="DM, ID, партия, целевой код"
-                       autocomplete="off" />
-            </div>
-        </div>
-
-        <div class="tool-table-wrap">
-            <table class="tool-table">
-                <thead>
-                    <tr>
-                        <th scope="col">№</th>
-                        <th scope="col">ТЕ</th>
-                        <th scope="col">ID</th>
-                        <th scope="col">Текущий DM-код</th>
-                        <th scope="col">Партия</th>
-                        <th scope="col">Целевой код</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @for (var i = 0; i < Model.Results.Count; i++)
+        @if (Model.Errors.Count > 0)
+        {
+            <div class="p-4 rounded-brand border flex gap-3 animate-in zoom-in-95 duration-300 bg-brand-error/10 border-brand-error/30 text-brand-error">
+                <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 8v5m0 3h.01" stroke-linecap="round"/></svg>
+                <div>
+                    @foreach (var error in Model.Errors)
                     {
-                        var row = Model.Results[i];
+                        <p class="text-sm font-medium">@error</p>
+                    }
+                </div>
+            </div>
+        }
 
-                        <tr class="replace-row" data-row-index="@i" data-page-row="true">
-                            <td class="tool-table__row-number">@(i + 1)</td>
-                            <td class="tool-table__mono">@row.TeCode</td>
-                            <td class="tool-table__mono">@row.ItemId</td>
-                            <td class="tool-table__mono tool-table__break">@row.Barcode</td>
-                            <td>@row.BatchName</td>
-                            <td class="tool-table__mono">@row.TargetCode</td>
-                        </tr>
+        @if (Model.UpdateSummary is not null)
+        {
+            var hasUpdates = Model.UpdateSummary.UpdatedCount > 0;
+            <div class="p-4 rounded-brand border flex gap-3 animate-in zoom-in-95 duration-300 @(hasUpdates ? "bg-brand-success/10 border-brand-success/30 text-brand-success" : "bg-brand-warning/10 border-brand-warning/30 text-brand-warning")">
+                <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <p class="text-sm font-medium">@(hasUpdates ? "DM-код успешно обновлен." : "Изменений не внесено.")</p>
+            </div>
+        }
+    </div>
 
-                        <tr class="replace-editor-row" data-editor-for="@i">
-                            <td colspan="6" class="p-0">
-                                <div class="tool-inline-editor">
-                                    <form method="post" asp-page-handler="UpdateRow" class="tool-inline-editor__form replace-editor-form">
-                                        <input type="hidden" name="teCode" value="@Model.Search.TeCode" />
-                                        <input type="hidden" name="itemId" value="@row.ItemId" />
-
-                                        <div class="tool-form-group">
-                                            <label>Новый DM для ID @row.ItemId</label>
-                                            <input class="form-control tool-input"
-                                                   type="text"
-                                                   name="newDm"
-                                                   placeholder="Сканируйте или введите новое значение"
-                                                   autocomplete="off"
-                                                   spellcheck="false"
-                                                   maxlength="128"
-                                                   required />
-                                        </div>
-
-                                        <div class="tool-inline-editor__actions">
-                                            <button type="submit" class="btn-tool btn-tool--success">Сохранить</button>
-                                            <button type="button" class="btn-tool btn-tool--secondary js-close-editor">Закрыть</button>
-                                        </div>
-                                    </form>
-                                </div>
+    <div class="lg:col-span-2">
+        @if (Model.HasResults)
+        {
+            <div class="table-container">
+                <table class="table-brand">
+                    <thead>
+                    <tr>
+                        <th>DM Код</th>
+                        <th>SKU / Партия</th>
+                        <th>Статус</th>
+                        <th class="text-right">Действие</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in Model.Results)
+                    {
+                        <tr>
+                            <td class="font-mono font-bold">@row.Barcode</td>
+                            <td class="font-mono text-xs">@row.BatchName</td>
+                            <td>
+                                <span class="badge badge-success">active</span>
+                            </td>
+                            <td class="text-right">
+                                <form method="post" asp-page-handler="UpdateRow" class="inline-flex gap-2 items-center">
+                                    <input type="hidden" name="teCode" value="@Model.Search.TeCode" />
+                                    <input type="hidden" name="itemId" value="@row.ItemId" />
+                                    <input type="text" name="newDm" class="input-field py-1 px-2 text-xs w-44" placeholder="Новый DM" required />
+                                    <button type="submit" class="btn-secondary py-1 px-3 text-xs">Заменить</button>
+                                </form>
                             </td>
                         </tr>
                     }
-                </tbody>
-            </table>
-        </div>
-
-        <div class="tool-pagination">
-            <span class="tool-pagination__info" id="paginationInfo"></span>
-            <button type="button" class="btn-tool btn-tool--secondary" id="prevPageBtn" aria-label="Предыдущая страница">←</button>
-            <button type="button" class="btn-tool btn-tool--secondary" id="nextPageBtn" aria-label="Следующая страница">→</button>
-        </div>
-    </section>
-}
-else
-{
-    <div class="tool-empty">
-        <div class="tool-empty__icon">↻</div>
-        <h2 class="tool-empty__title">Записи пока не загружены</h2>
-        <p class="tool-empty__text">Введите номер ТЕ и откройте список строк для точечной замены DM-кода.</p>
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="card-brand p-12 flex flex-col items-center justify-center text-center border-dashed border-2 opacity-50 h-full">
+                <svg class="w-12 h-12 text-brand-text-dim mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h10m0 0-3-3m3 3-3 3M20 17H10m0 0 3-3m-3 3 3 3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                <p class="text-brand-text-muted">Загрузите данные ТЕ для начала работы</p>
+            </div>
+        }
     </div>
-}
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const pageSize = 25;
-            const rows = Array.from(document.querySelectorAll('.replace-row[data-page-row="true"]'));
-            const filterInput = document.getElementById("tableFilterInput");
-            const searchResultInfo = document.getElementById("searchResultInfo");
-            const info = document.getElementById("paginationInfo");
-            const prevBtn = document.getElementById("prevPageBtn");
-            const nextBtn = document.getElementById("nextPageBtn");
-            const updateToastElement = document.getElementById("updateResultToast");
-
-            if (updateToastElement && window.bootstrap?.Toast) {
-                const updateToast = bootstrap.Toast.getOrCreateInstance(updateToastElement);
-                updateToast.show();
-            }
-
-            if (rows.length === 0 || !info || !prevBtn || !nextBtn) {
-                return;
-            }
-
-            let filteredRows = rows.slice();
-            let currentPage = 1;
-
-            function getTotalPages() {
-                return Math.max(1, Math.ceil(filteredRows.length / pageSize));
-            }
-
-            function closeAllEditors() {
-                rows.forEach(function (row) {
-                    row.classList.remove("row-selected");
-                    row.classList.remove("row-disabled");
-                    row.removeAttribute("aria-disabled");
-                    row.setAttribute("aria-selected", "false");
-
-                    const index = row.dataset.rowIndex;
-                    const editor = document.querySelector('.replace-editor-row[data-editor-for="' + index + '"]');
-
-                    if (editor) {
-                        editor.classList.remove("row-expanded");
-                    }
-                });
-            }
-
-            function renderPage(page) {
-                const totalPages = getTotalPages();
-                currentPage = Math.min(Math.max(1, page), totalPages);
-
-                const start = (currentPage - 1) * pageSize;
-                const end = start + pageSize;
-
-                rows.forEach(function (row, index) {
-                    const filteredIndex = filteredRows.indexOf(row);
-                    const visible = filteredIndex >= start && filteredIndex < end;
-
-                    row.style.display = filteredIndex >= 0 && visible ? "" : "none";
-
-                    const editor = document.querySelector('.replace-editor-row[data-editor-for="' + row.dataset.rowIndex + '"]');
-                    if (editor) {
-                        editor.style.display = filteredIndex >= 0 && visible && editor.classList.contains("row-expanded")
-                            ? "table-row"
-                            : "none";
-                    }
-
-                    const rowNumberCell = row.querySelector("td:first-child");
-                    if (rowNumberCell) {
-                        rowNumberCell.textContent = filteredIndex >= 0
-                            ? String(filteredIndex + 1)
-                            : String(index + 1);
-                    }
-                });
-
-                info.textContent = "Страница " + currentPage + " из " + totalPages + " · записей: " + filteredRows.length;
-                prevBtn.disabled = currentPage <= 1;
-                nextBtn.disabled = currentPage >= totalPages;
-
-                if (searchResultInfo) {
-                    searchResultInfo.textContent = filteredRows.length === rows.length
-                        ? "Щёлкните по строке, чтобы открыть замену DM"
-                        : "После фильтрации осталось записей: " + filteredRows.length;
-                }
-            }
-
-            function applyFilter() {
-                const query = (filterInput?.value || "").trim().toLowerCase();
-
-                filteredRows = rows.filter(function (row) {
-                    if (!query) {
-                        return true;
-                    }
-
-                    const rowText = row.textContent?.toLowerCase() || "";
-                    return rowText.includes(query);
-                });
-
-                closeAllEditors();
-                renderPage(1);
-            }
-
-            function toggleRowEditor(row) {
-                const index = row.dataset.rowIndex;
-                const editor = document.querySelector('.replace-editor-row[data-editor-for="' + index + '"]');
-
-                if (!editor || editor.classList.contains("row-expanded")) {
-                    return;
-                }
-
-                closeAllEditors();
-
-                row.classList.add("row-selected");
-                row.setAttribute("aria-selected", "true");
-
-                editor.classList.add("row-expanded");
-                editor.style.display = "table-row";
-
-                const dmInput = editor.querySelector('input[name="newDm"]');
-                if (dmInput) {
-                    dmInput.focus();
-                    dmInput.select();
-                }
-
-                rows.forEach(function (candidate) {
-                    if (candidate !== row && candidate.style.display !== "none") {
-                        candidate.classList.add("row-disabled");
-                        candidate.setAttribute("aria-disabled", "true");
-                    }
-                });
-            }
-
-            rows.forEach(function (row) {
-                row.addEventListener("click", function (event) {
-                    if (event.target.closest("input, textarea, button, a, label, select, form")) {
-                        return;
-                    }
-
-                    toggleRowEditor(row);
-                });
-            });
-
-            prevBtn.addEventListener("click", function () {
-                if (currentPage > 1) {
-                    closeAllEditors();
-                    renderPage(currentPage - 1);
-                }
-            });
-
-            nextBtn.addEventListener("click", function () {
-                if (currentPage < getTotalPages()) {
-                    closeAllEditors();
-                    renderPage(currentPage + 1);
-                }
-            });
-
-            if (filterInput) {
-                filterInput.addEventListener("input", applyFilter);
-            }
-
-            document.querySelectorAll(".replace-editor-form").forEach(function (form) {
-                form.addEventListener("keydown", function (event) {
-                    if (event.key === "Escape") {
-                        closeAllEditors();
-                        renderPage(currentPage);
-                    }
-                });
-
-                const closeButton = form.querySelector(".js-close-editor");
-                if (closeButton) {
-                    closeButton.addEventListener("click", function () {
-                        closeAllEditors();
-                        renderPage(currentPage);
-                    });
-                }
-            });
-
-            renderPage(1);
-        });
-    </script>
 }

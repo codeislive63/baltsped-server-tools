@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
-@source "../Pages";
-@source "../Views";
-@source "../Components";
+@source "../src/Baltsped.Tools.Server/Pages";
+@source "../src/Baltsped.Tools.Server/Views";
+@source "../src/Baltsped.Tools.Server/Components";
+@source "../src/Baltsped.Tools.Server/Pages/Shared/_Layout.cshtml";
 
 @theme {
   --color-brand-bg: var(--brand-bg);
@@ -10,23 +11,17 @@
   --color-brand-surface-light: var(--brand-surface-light);
   --color-brand-border: var(--brand-border);
   --color-brand-border-focus: var(--brand-border-focus);
-  
   --color-brand-primary: #2563EB;
   --color-brand-primary-hover: #1D4ED8;
   --color-brand-accent: var(--brand-accent);
-  --color-brand-ice: #BFDBFE;
-  
   --color-brand-text: var(--brand-text);
   --color-brand-text-muted: var(--brand-text-muted);
   --color-brand-text-dim: var(--brand-text-dim);
-
   --color-brand-success: #059669;
   --color-brand-warning: #D97706;
   --color-brand-error: #DC2626;
-
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-
   --radius-brand: 2px;
 }
 
@@ -56,74 +51,63 @@
   }
 
   body {
-    @apply bg-brand-bg text-brand-text font-sans antialiased transition-colors duration-300;
+    @apply m-0 bg-brand-bg text-brand-text font-sans antialiased transition-colors duration-300;
   }
 
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    @apply bg-brand-bg;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-brand-border rounded-full hover:bg-brand-border-focus;
-  }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { @apply bg-brand-bg; }
+  ::-webkit-scrollbar-thumb { @apply bg-brand-border rounded-full hover:bg-brand-border-focus; }
 }
 
 @layer components {
   .btn-primary {
     @apply px-4 py-2 bg-brand-primary text-white font-medium rounded-brand transition-colors hover:bg-brand-primary-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2;
   }
-  
   .btn-secondary {
     @apply px-4 py-2 bg-brand-surface-light text-brand-text font-medium border border-brand-border rounded-brand transition-colors hover:bg-brand-border-focus disabled:opacity-50 flex items-center justify-center gap-2;
   }
-
-  .btn-ghost {
-    @apply px-4 py-2 text-brand-text-muted font-medium rounded-brand transition-colors hover:bg-brand-surface-light hover:text-brand-text flex items-center justify-center gap-2;
-  }
-
   .input-field {
     @apply w-full px-3 py-2 bg-brand-bg border border-brand-border text-brand-text rounded-brand focus:outline-none focus:border-brand-primary transition-colors placeholder:text-brand-text-dim;
   }
-
   .card-brand {
     @apply bg-brand-surface border border-brand-border rounded-brand overflow-hidden;
   }
-
-  .table-container {
-    @apply w-full overflow-x-auto border border-brand-border rounded-brand bg-brand-surface;
-  }
-
-  .table-brand {
-    @apply w-full text-left border-collapse;
-  }
-
-  .table-brand th {
-    @apply px-4 py-3 bg-brand-surface-light text-brand-text-muted font-semibold text-xs uppercase tracking-wider border-b border-brand-border;
-  }
-
-  .table-brand td {
-    @apply px-4 py-3 border-b border-brand-border text-sm align-middle;
-  }
-
-  .table-brand tr:last-child td {
-    @apply border-b-0;
-  }
-
-  .table-brand tr:hover td {
-    @apply bg-brand-surface-light/50;
-  }
-
-  .badge {
-    @apply px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight rounded-brand inline-flex items-center;
-  }
-
+  .table-container { @apply w-full overflow-x-auto border border-brand-border rounded-brand bg-brand-surface; }
+  .table-brand { @apply w-full text-left border-collapse; }
+  .table-brand th { @apply px-4 py-3 bg-brand-surface-light text-brand-text-muted font-semibold text-xs uppercase tracking-wider border-b border-brand-border; }
+  .table-brand td { @apply px-4 py-3 border-b border-brand-border text-sm align-middle; }
+  .table-brand tr:last-child td { @apply border-b-0; }
+  .table-brand tr:hover td { @apply bg-brand-surface-light/50; }
+  .badge { @apply px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight rounded-brand inline-flex items-center; }
   .badge-success { @apply bg-brand-success/20 text-brand-success border border-brand-success/30; }
   .badge-warning { @apply bg-brand-warning/20 text-brand-warning border border-brand-warning/30; }
   .badge-error { @apply bg-brand-error/20 text-brand-error border border-brand-error/30; }
   .badge-neutral { @apply bg-brand-border text-brand-text-muted border border-brand-border-focus; }
+
+  #appSidebar.is-collapsed { @apply w-20; }
+  #appSidebar.is-collapsed .sidebar-label { @apply hidden; }
+  #appSidebar.is-collapsed .sidebar-logo-open { @apply hidden; }
+  #appSidebar.is-collapsed .sidebar-profile { @apply justify-center px-0; }
+}
+
+@layer utilities {
+  .animate-in { animation-duration: .25s; animation-fill-mode: both; }
+  .fade-in { animation-name: fade-in; }
+  .slide-in-from-bottom-4 { animation-name: slide-in-from-bottom-4; }
+  .zoom-in-95 { animation-name: zoom-in-95; }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slide-in-from-bottom-4 {
+    from { opacity: 0; transform: translateY(1rem); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes zoom-in-95 {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
 }

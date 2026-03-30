@@ -1,58 +1,47 @@
 document.addEventListener("DOMContentLoaded", function () {
-    const body = document.body;
-    const appShell = document.getElementById("appShell");
+    const root = document.documentElement;
     const appSidebar = document.getElementById("appSidebar");
     const sidebarToggle = document.getElementById("sidebarToggle");
+    const sidebarIconOpen = document.getElementById("sidebarIconOpen");
+    const sidebarIconClosed = document.getElementById("sidebarIconClosed");
     const themeSwitch = document.getElementById("themeSwitch");
     const themeSwitchText = document.getElementById("themeSwitchText");
+    const themeSun = document.getElementById("themeSun");
+    const themeMoon = document.getElementById("themeMoon");
 
     const themeStorageKey = "baltsped.theme";
     const sidebarStorageKey = "baltsped.sidebar.collapsed";
 
     function applyTheme(theme) {
-        body.classList.remove("theme-dark", "theme-light");
-        body.classList.add(theme === "light" ? "theme-light" : "theme-dark");
+        const isLight = theme === "light";
+        root.classList.toggle("light", isLight);
 
         if (themeSwitchText) {
-            themeSwitchText.textContent = theme === "dark"
-                ? "Светлая тема"
-                : "Тёмная тема";
+            themeSwitchText.textContent = isLight ? "Тёмная тема" : "Светлая тема";
         }
 
+        themeSun?.classList.toggle("hidden", isLight);
+        themeMoon?.classList.toggle("hidden", !isLight);
         localStorage.setItem(themeStorageKey, theme);
     }
 
     function applySidebarState(isCollapsed) {
-        if (!appShell) {
-            return;
-        }
-
-        appShell.classList.toggle("is-sidebar-collapsed", isCollapsed);
-
-        if (appSidebar) {
-            appSidebar.setAttribute("aria-expanded", (!isCollapsed).toString());
-        }
-
+        appSidebar?.classList.toggle("is-collapsed", isCollapsed);
+        sidebarIconOpen?.classList.toggle("hidden", isCollapsed);
+        sidebarIconClosed?.classList.toggle("hidden", !isCollapsed);
         localStorage.setItem(sidebarStorageKey, String(isCollapsed));
     }
 
-    const savedTheme = localStorage.getItem(themeStorageKey);
-    applyTheme(savedTheme === "light" ? "light" : "dark");
+    applyTheme(localStorage.getItem(themeStorageKey) === "light" ? "light" : "dark");
+    applySidebarState(localStorage.getItem(sidebarStorageKey) === "true");
 
-    const savedSidebarState = localStorage.getItem(sidebarStorageKey) === "true";
-    applySidebarState(savedSidebarState);
+    themeSwitch?.addEventListener("click", function () {
+        const isLight = root.classList.contains("light");
+        applyTheme(isLight ? "dark" : "light");
+    });
 
-    if (themeSwitch) {
-        themeSwitch.addEventListener("click", function () {
-            const isDark = body.classList.contains("theme-dark");
-            applyTheme(isDark ? "light" : "dark");
-        });
-    }
-
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener("click", function () {
-            const isCollapsed = appShell?.classList.contains("is-sidebar-collapsed");
-            applySidebarState(!isCollapsed);
-        });
-    }
+    sidebarToggle?.addEventListener("click", function () {
+        const isCollapsed = appSidebar?.classList.contains("is-collapsed");
+        applySidebarState(!isCollapsed);
+    });
 });

@@ -1,61 +1,40 @@
-﻿@page
+@page
 @model Baltsped.Tools.Server.Pages.IndexModel
 @{
     ViewData["Title"] = "Каталог инструментов";
-
-    string GetCategory(string title) => title switch
-    {
-        "Печать листов вброса" => "Документы",
-        "Проверка содержимого ТЕ" => "Инструмент",
-        "Просмотр содержимого ТЕ" => "Транспортные единицы",
-        "Создание заказа ДМ" => "Инструмент",
-        "DM-коды" => "Маркировка",
-        "Составление ЗНТ" => "Склад",
-        _ => "Инструмент"
-    };
 }
 
-<div class="page-hero">
-    <span class="page-hero__eyebrow">Baltsped Tools</span>
-    <h1 class="page-hero__title">Каталог инструментов</h1>
-    <p class="page-hero__description">
-        Внутренние операционные инструменты для работы со складскими данными, транспортными единицами и маркировкой.
-    </p>
-</div>
-
-<p class="section-lead">
-    Выберите нужный модуль. Доступные инструменты открываются сразу, остальные отмечены как находящиеся в разработке.
-</p>
-
-<div class="tool-grid">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     @foreach (var tool in Model.Tools)
     {
-        var cardClass = tool.IsAvailable ? "tool-card is-available" : "tool-card is-disabled";
-        var stateClass = tool.IsAvailable ? "tool-state is-ready" : "tool-state is-soon";
-        var stateText = tool.IsAvailable ? "Доступен" : "Недоступен";
-        var category = GetCategory(tool.Title);
-
-        <article class="@cardClass">
-            <div class="tool-card__body">
-                <div class="tool-card__meta">
-                    <span class="tool-chip">@category</span>
-                    <span class="@stateClass">@stateText</span>
+        <div class="card-brand group relative flex flex-col h-full @(tool.IsAvailable ? string.Empty : "opacity-60 grayscale")">
+            <div class="p-6 flex-1">
+                <div class="flex justify-between items-start mb-4">
+                    @if (tool.IsAvailable)
+                    {
+                        <span class="badge badge-success">Доступен</span>
+                    }
+                    else
+                    {
+                        <span class="badge badge-error">Недоступен</span>
+                    }
                 </div>
-
-                <h2 class="tool-card__title">@tool.Title</h2>
-                <p class="tool-card__description">@tool.Description</p>
+                <h3 class="text-lg font-bold mb-2 group-hover:text-brand-accent transition-colors">@tool.Title</h3>
+                <p class="text-sm text-brand-text-muted leading-relaxed">@tool.Description</p>
             </div>
-
-            <div class="tool-card__footer">
+            <div class="px-6 py-4 bg-brand-surface-light/30 border-t border-brand-border flex justify-between items-center">
                 @if (tool.IsAvailable)
                 {
-                    <a href="@tool.Route" class="app-btn app-btn--primary">Открыть</a>
+                    <a href="@tool.Route" class="text-brand-primary font-bold text-xs flex items-center gap-1 hover:underline">
+                        Открыть
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m9 6 6 6-6 6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    </a>
                 }
                 else
                 {
-                    <button type="button" class="app-btn app-btn--secondary" disabled>В разработке</button>
+                    <button disabled class="text-brand-primary font-bold text-xs flex items-center gap-1 disabled:no-underline">Недоступен</button>
                 }
             </div>
-        </article>
+        </div>
     }
 </div>
