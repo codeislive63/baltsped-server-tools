@@ -1,106 +1,46 @@
 ﻿@page
 @using System.Linq
-@using Baltsped.Tools.Server.Pages.Shared
 @model Baltsped.Tools.Server.Pages.Te.LookupModel
 @{
     ViewData["Title"] = "Просмотр содержимого ТЕ";
 }
 
-<style>
-    .lookup-table th {
-        white-space: nowrap;
+<div class="viewer-head">
+    <h1 class="viewer-head__title">Просмотр содержимого ТЕ</h1>
+    <p class="viewer-head__description">
+        Поиск и анализ содержимого транспортной единицы. Введите номер ТЕ для получения детальной информации о вложенных DM-кодах и артикулах.
+    </p>
+</div>
+
+<div class="viewer-search-panel">
+    <form method="get" asp-page="/Te/Lookup" class="viewer-search-bar">
+        <div class="viewer-search-input">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.7" />
+                <path d="m16 16 4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+            </svg>
+
+            <input asp-for="TeCode"
+                   placeholder="Введите номер ТЕ"
+                   autocomplete="off"
+                   spellcheck="false"
+                   maxlength="32"
+                   autofocus />
+        </div>
+
+        <button type="submit" class="app-btn app-btn--primary">Найти</button>
+
+        <a asp-page="/Te/Lookup" class="app-btn app-btn--secondary app-btn--icon" aria-label="Очистить">
+            <svg viewBox="0 0 24 24" aria-hidden="true" style="width:18px;height:18px;">
+                <path d="M5 7h14M9 7V5h6v2m-7 3v7m4-7v7m4-7v7M7 7l1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+        </a>
+    </form>
+
+    @if (Model.SearchPerformed && !Model.ModelState.IsValid)
+    {
+        <div asp-validation-summary="All" class="app-alert"></div>
     }
-
-    .lookup-tools {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        gap: .75rem;
-        padding: 1rem;
-        border-bottom: 1px solid #dee2e6;
-        background-color: #f8f9fb;
-    }
-
-    .lookup-search {
-        max-width: 420px;
-        width: 100%;
-    }
-
-    .lookup-pagination {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        gap: .5rem;
-        padding: .75rem 1rem;
-        border-top: 1px solid #dee2e6;
-        background-color: #f8f9fb;
-    }
-
-    .lookup-summary-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-
-    .lookup-summary-card {
-        border: 1px solid #e9ecef;
-        border-radius: 1rem;
-        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-        padding: 1rem 1.25rem;
-    }
-
-    .lookup-summary-label {
-        font-size: .85rem;
-        color: #6c757d;
-        margin-bottom: .35rem;
-    }
-
-    .lookup-summary-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        line-height: 1.1;
-        color: #212529;
-    }
-</style>
-
-@await Html.PartialAsync("_PageHero", new PageHeroModel
-{
-    Title = "Просмотр содержимого ТЕ",
-    Description = "Введите номер ТЕ, чтобы загрузить его содержимое"
-})
-
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-body p-4">
-        <form method="get" asp-page="/Te/Lookup">
-            <div class="tool-form-block">
-                <label asp-for="TeCode" class="form-label">Номер ТЕ</label>
-
-                <input asp-for="TeCode"
-                       class="form-control"
-                       placeholder="Например: 4412615"
-                       autocomplete="off"
-                       spellcheck="false"
-                       maxlength="32"
-                       autofocus />
-
-                <div class="tool-form-actions mt-3">
-                    <button type="submit" class="btn btn-primary">
-                        Показать записи
-                    </button>
-
-                    <a asp-page="/Te/Lookup" class="btn btn-outline-secondary">
-                        Очистить
-                    </a>
-                </div>
-            </div>
-        </form>
-
-        @if (Model.SearchPerformed && !Model.ModelState.IsValid)
-        {
-            <div asp-validation-summary="All" class="alert alert-danger mt-3 mb-0"></div>
-        }
-    </div>
 </div>
 
 @if (Model.Rows.Count > 0)
@@ -117,80 +57,101 @@
         .Distinct(StringComparer.Ordinal)
         .Count();
 
-    <div class="lookup-summary-grid">
-        <div class="lookup-summary-card shadow-sm">
-            <div class="lookup-summary-label">Найдено строк</div>
-            <div class="lookup-summary-value">@Model.Rows.Count</div>
+    <div class="viewer-summary">
+        <div class="viewer-summary__item">
+            <div class="viewer-summary__label">Всего записей</div>
+            <div class="viewer-summary__value">@Model.Rows.Count</div>
         </div>
 
-        <div class="lookup-summary-card shadow-sm">
-            <div class="lookup-summary-label">Уникальных штрихкодов</div>
-            <div class="lookup-summary-value">@uniqueBarcodesCount</div>
+        <div class="viewer-summary__item">
+            <div class="viewer-summary__label">Уникальных штрихкодов</div>
+            <div class="viewer-summary__value">@uniqueBarcodesCount</div>
         </div>
 
-        <div class="lookup-summary-card shadow-sm">
-            <div class="lookup-summary-label">Уникальных артикулов</div>
-            <div class="lookup-summary-value">@uniqueArticlesCount</div>
+        <div class="viewer-summary__item">
+            <div class="viewer-summary__label">Уникальных артикулов</div>
+            <div class="viewer-summary__value">@uniqueArticlesCount</div>
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <div class="lookup-tools">
-                <div class="small text-secondary align-self-center" id="searchResultInfo"></div>
+    <div class="viewer-table-wrap">
+        <div class="viewer-toolbar">
+            <div class="viewer-toolbar__status" id="searchResultInfo"></div>
 
-                <div class="lookup-search">
-                    <label for="tableFilterInput" class="form-label mb-1">Быстрый фильтр по таблице</label>
-                    <input type="search"
-                           id="tableFilterInput"
-                           class="form-control"
-                           placeholder="ТЕ, артикул, наименование, штрихкод, код партии"
-                           autocomplete="off" />
-                </div>
+            <div class="viewer-toolbar__filter">
+                <label for="tableFilterInput">Быстрый фильтр по таблице</label>
+                <input type="search"
+                       id="tableFilterInput"
+                       placeholder="ТЕ, артикул, наименование, штрихкод, код партии"
+                       autocomplete="off" />
             </div>
+        </div>
 
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0 lookup-table">
-                    <thead class="table-light">
-                        <tr>
-                            <th scope="col">№</th>
-                            <th scope="col">ТЕ</th>
-                            <th scope="col">Артикул</th>
-                            <th scope="col">Наименование</th>
-                            <th scope="col">Штрихкод</th>
-                            <th scope="col">Код партии</th>
+        <div class="table-responsive">
+            <table class="table-brand lookup-table mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">№</th>
+                        <th scope="col">ТЕ</th>
+                        <th scope="col">Артикул</th>
+                        <th scope="col">Наименование</th>
+                        <th scope="col">Штрихкод</th>
+                        <th scope="col">Код партии</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < Model.Rows.Count; i++)
+                    {
+                        var row = Model.Rows[i];
+
+                        <tr class="lookup-row" data-row-index="@i" data-page-row="true">
+                            <td>@(i + 1)</td>
+                            <td>@row.TeCode</td>
+                            <td>@row.ArticleCode</td>
+                            <td>@row.ArticleName</td>
+                            <td class="table-brand__code">@row.Barcode</td>
+                            <td>@row.BatchCode</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @for (var i = 0; i < Model.Rows.Count; i++)
-                        {
-                            var row = Model.Rows[i];
+                    }
+                </tbody>
+            </table>
+        </div>
 
-                            <tr class="lookup-row" data-row-index="@i" data-page-row="true">
-                                <td>@(i + 1)</td>
-                                <td>@row.TeCode</td>
-                                <td>@row.ArticleCode</td>
-                                <td>@row.ArticleName</td>
-                                <td>@row.Barcode</td>
-                                <td>@row.BatchCode</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="lookup-pagination">
-                <span class="text-secondary small" id="paginationInfo"></span>
-                <button type="button" class="btn btn-outline-secondary btn-sm" id="prevPageBtn" aria-label="Предыдущая страница">&larr;</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" id="nextPageBtn" aria-label="Следующая страница">&rarr;</button>
-            </div>
+        <div class="table-pagination">
+            <span class="table-pagination__info" id="paginationInfo"></span>
+            <button type="button" class="app-btn app-btn--secondary" id="prevPageBtn" aria-label="Предыдущая страница">&larr;</button>
+            <button type="button" class="app-btn app-btn--secondary" id="nextPageBtn" aria-label="Следующая страница">&rarr;</button>
         </div>
     </div>
 }
 else if (Model.SearchPerformed && Model.ModelState.IsValid)
 {
-    <div class="page-empty p-4 text-center text-secondary">
-        По указанному номеру ТЕ ничего не найдено
+    <div class="page-empty page-empty--large">
+        <div class="page-empty__inner">
+            <div class="page-empty__icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 5.5 12 2l8 3.5v13L12 22l-8-3.5v-13Z" fill="none" stroke="currentColor" stroke-width="1.7" />
+                    <path d="M12 2v20M4 5.5l8 3.5 8-3.5" fill="none" stroke="currentColor" stroke-width="1.7" />
+                </svg>
+            </div>
+            <h2 class="page-empty__title">Ничего не найдено</h2>
+            <p class="page-empty__text">По указанному номеру ТЕ записи отсутствуют.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="page-empty page-empty--large">
+        <div class="page-empty__inner">
+            <div class="page-empty__icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 5.5 12 2l8 3.5v13L12 22l-8-3.5v-13Z" fill="none" stroke="currentColor" stroke-width="1.7" />
+                    <path d="M12 2v20M4 5.5l8 3.5 8-3.5" fill="none" stroke="currentColor" stroke-width="1.7" />
+                </svg>
+            </div>
+            <h2 class="page-empty__title">Ожидание поиска</h2>
+            <p class="page-empty__text">Введите номер транспортной единицы, чтобы загрузить её содержимое.</p>
+        </div>
     </div>
 }
 

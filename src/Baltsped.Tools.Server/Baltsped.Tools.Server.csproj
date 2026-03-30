@@ -18,4 +18,15 @@
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
   </ItemGroup>
 
+	<Target Name="TailwindRestore" BeforeTargets="Build" Condition="Exists('package.json') and !Exists('node_modules')">
+		<Exec Command="npm install" />
+	</Target>
+
+	<Target Name="TailwindBuild" BeforeTargets="Build" Condition="Exists('package.json')">
+		<Exec Command="npm run tw:build" />
+	</Target>
+
+	<Target Name="TailwindBuildOnPublish" BeforeTargets="Publish" Condition="Exists('package.json')">
+		<Exec Command="npm run tw:build" />
+	</Target>
 </Project>

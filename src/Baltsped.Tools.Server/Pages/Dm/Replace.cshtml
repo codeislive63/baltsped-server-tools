@@ -5,175 +5,36 @@
     ViewData["Title"] = "Замена DM-кодов";
 }
 
-<style>
-    .replace-row {
-        cursor: pointer;
-    }
-
-        .replace-row.row-selected {
-            --bs-table-bg: #e7f1ff;
-            --bs-table-hover-bg: #d8e8ff;
-        }
-
-    .replace-editor-row {
-        display: none;
-    }
-
-        .replace-editor-row.row-expanded {
-            display: table-row;
-        }
-
-    .replace-editor-panel {
-        background-color: #f8f9fb;
-        border-top: 1px solid #dee2e6;
-        animation: slideDown 160ms ease-out;
-    }
-
-    .replace-row.row-disabled {
-        position: relative;
-        pointer-events: none;
-        opacity: .7;
-    }
-
-        .replace-row.row-disabled::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background-color: rgba(248, 249, 250, .72);
-        }
-
-    .replace-pagination {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        gap: .5rem;
-        padding: .75rem 1rem;
-        border-top: 1px solid #dee2e6;
-        background-color: #f8f9fb;
-    }
-
-    .replace-tools {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        gap: .75rem;
-        padding: 1rem;
-        border-bottom: 1px solid #dee2e6;
-        background-color: #f8f9fb;
-    }
-
-    .replace-search {
-        max-width: 420px;
-        width: 100%;
-    }
-
-    .replace-toast-stack {
-        z-index: 1085;
-    }
-
-    .replace-toast {
-        border-radius: 0.85rem;
-        overflow: hidden;
-        min-width: 320px;
-    }
-
-    .replace-toast-header {
-        border-bottom: 0;
-    }
-
-    .replace-toast-header-success {
-        background: linear-gradient(135deg, #d1f7df 0%, #e7fff0 100%);
-    }
-
-    .replace-toast-header-warning {
-        background: linear-gradient(135deg, #fff0cd 0%, #fff8e5 100%);
-    }
-
-    .replace-toast-icon {
-        width: 1.5rem;
-        height: 1.5rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        margin-right: .5rem;
-        font-weight: 700;
-    }
-
-    .replace-toast-icon-success {
-        background-color: #198754;
-        color: #fff;
-    }
-
-    .replace-toast-icon-warning {
-        background-color: #ffc107;
-        color: #212529;
-    }
-
-    .replace-toast-dm-old {
-        color: #6c757d;
-        text-decoration: line-through;
-    }
-
-    .replace-toast-dm-new {
-        font-weight: 600;
-        color: #198754;
-    }
-
-    @@keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-6px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-</style>
-
 @await Html.PartialAsync("_PageHero", new PageHeroModel
 {
     Title = "Замена DM-кодов",
-    Description = "Введите TE, затем выберите запись и укажите новое значение"
+    Description = "Найдите записи по ТЕ, выберите нужную строку и укажите новый DataMatrix-код"
 })
 
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-body p-4">
-        <form method="post" asp-page-handler="Search">
-            <div class="tool-form-block">
-                <label asp-for="Search.TeCode" class="form-label">Номер ТЕ</label>
+<div class="tool-panel mb-4">
+    <form method="post" asp-page-handler="Search" class="tool-form-grid">
+        <div class="tool-form-group">
+            <label asp-for="Search.TeCode">Номер ТЕ</label>
+            <input asp-for="Search.TeCode"
+                   class="form-control tool-input"
+                   placeholder="Например: 4412960"
+                   autocomplete="off"
+                   spellcheck="false"
+                   maxlength="32"
+                   autofocus />
+            <span asp-validation-for="Search.TeCode" class="text-danger small d-block mt-2"></span>
+        </div>
 
-                <input asp-for="Search.TeCode"
-                       class="form-control"
-                       placeholder="Например: 4412960"
-                       autocomplete="off"
-                       spellcheck="false"
-                       maxlength="32"
-                       autofocus />
-
-                <span asp-validation-for="Search.TeCode" class="text-danger small d-block mt-1"></span>
-
-                <div class="tool-form-actions mt-3">
-                    <button type="submit" class="btn btn-primary">
-                        Показать записи
-                    </button>
-
-                    <a href="/dm/replace" class="btn btn-outline-secondary">
-                        Очистить
-                    </a>
-                </div>
-            </div>
-        </form>
-    </div>
+        <button type="submit" class="btn-tool btn-tool--primary">Показать записи</button>
+        <a href="/dm/replace" class="btn-tool btn-tool--secondary">Очистить</a>
+    </form>
 </div>
 
 @if (Model.Errors.Count > 0)
 {
-    <div class="alert alert-danger shadow-sm" role="alert">
-        <div class="fw-semibold mb-2">Не удалось выполнить операцию</div>
-        <ul class="mb-0">
+    <div class="tool-alert tool-alert--danger mb-4" role="alert">
+        <div class="tool-alert__title">Не удалось выполнить операцию</div>
+        <ul>
             @foreach (var error in Model.Errors)
             {
                 <li>@error</li>
@@ -186,41 +47,38 @@
 {
     var hasUpdates = Model.UpdateSummary.UpdatedCount > 0;
 
-    <div class="toast-container position-fixed top-0 end-0 p-3 replace-toast-stack">
+    <div class="toast-container position-fixed top-0 end-0 p-3 tool-toast-stack">
         <div id="updateResultToast"
-             class="toast border-0 shadow replace-toast"
+             class="toast border-0 tool-toast"
              role="status"
              aria-live="polite"
              aria-atomic="true"
              data-bs-delay="9000">
-            <div class="toast-header replace-toast-header @(hasUpdates ? "replace-toast-header-success" : "replace-toast-header-warning")">
-                <span class="replace-toast-icon @(hasUpdates ? "replace-toast-icon-success" : "replace-toast-icon-warning")">@(hasUpdates ? "✓" : "!")</span>
-                <strong class="me-auto">@(hasUpdates ? "Запись успешно обновлена" : "Изменений не внесено")</strong>
+            <div class="tool-toast__header @(hasUpdates ? "tool-toast__header--success" : "tool-toast__header--warning")">
+                <strong class="tool-toast__title">@(hasUpdates ? "Запись обновлена" : "Изменений не внесено")</strong>
                 <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>
             </div>
-            <div class="toast-body">
-                <div class="mb-2">
-                    Обновлено записей: <strong>@Model.UpdateSummary.UpdatedCount</strong>
-                </div>
+            <div class="tool-toast__body">
+                <div class="mb-2">Обновлено записей: <strong>@Model.UpdateSummary.UpdatedCount</strong></div>
 
                 @if (hasUpdates && Model.UpdateSummary.UpdatedItems.Count > 0)
                 {
                     var item = Model.UpdateSummary.UpdatedItems.First();
 
                     <div class="small">
-                        <div class="fw-semibold mb-1">ID @item.ItemId</div>
+                        <div class="fw-semibold mb-1">ID записи @item.ItemId</div>
                         <div class="text-break">
-                            <span class="replace-toast-dm-old">@item.PreviousDm</span>
+                            <span class="tool-toast__dm-old">@item.PreviousDm</span>
                             <span class="mx-1">→</span>
-                            <span class="replace-toast-dm-new">@item.NewDm</span>
+                            <span class="tool-toast__dm-new">@item.NewDm</span>
                         </div>
                     </div>
                 }
 
                 @if (!hasUpdates)
                 {
-                    <div class="small text-secondary mb-2">
-                        Проверьте новое значение DM и попробуйте сохранить запись снова
+                    <div class="small text-secondary">
+                        Проверьте новое значение DM и попробуйте сохранить запись снова.
                     </div>
                 }
             </div>
@@ -230,85 +88,91 @@
 
 @if (Model.HasResults)
 {
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <div class="replace-tools">
-                <div class="small text-secondary align-self-center" id="searchResultInfo"></div>
+    <section class="tool-card tool-table-card">
+        <div class="tool-table-toolbar">
+            <div class="tool-table-toolbar__info" id="searchResultInfo"></div>
 
-                <div class="replace-search">
-                    <label for="tableFilterInput" class="form-label mb-1">Быстрый фильтр по таблице</label>
-                    <input type="search"
-                           id="tableFilterInput"
-                           class="form-control"
-                           placeholder="DM, ID, партия, целевой код"
-                           autocomplete="off" />
-                </div>
-            </div>
-
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th scope="col">№</th>
-                            <th scope="col">TE</th>
-                            <th scope="col">ID</th>
-                            <th scope="col">Текущий DM код</th>
-                            <th scope="col">Партия</th>
-                            <th scope="col">Целевой код</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for (var i = 0; i < Model.Results.Count; i++)
-                        {
-                            var row = Model.Results[i];
-
-                            <tr class="replace-row" data-row-index="@i" data-page-row="true">
-                                <td>@(i + 1)</td>
-                                <td>@row.TeCode</td>
-                                <td>@row.ItemId</td>
-                                <td class="text-break">@row.Barcode</td>
-                                <td>@row.BatchName</td>
-                                <td>@row.TargetCode</td>
-                            </tr>
-
-                            <tr class="replace-editor-row" data-editor-for="@i">
-                                <td colspan="6" class="p-0">
-                                    <div class="replace-editor-panel p-3">
-                                        <form method="post" asp-page-handler="UpdateRow" class="row g-2 align-items-end replace-editor-form">
-                                            <input type="hidden" name="teCode" value="@Model.Search.TeCode" />
-                                            <input type="hidden" name="itemId" value="@row.ItemId" />
-
-                                            <div class="col-12 col-lg-6">
-                                                <label class="form-label mb-1">Новый DM для ID @row.ItemId</label>
-                                                <input class="form-control"
-                                                       type="text"
-                                                       name="newDm"
-                                                       placeholder="Сканируйте или введите новое значение"
-                                                       autocomplete="off"
-                                                       spellcheck="false"
-                                                       maxlength="128"
-                                                       required />
-                                            </div>
-
-                                            <div class="col-12 col-lg-auto d-flex gap-2">
-                                                <button type="submit" class="btn btn-success">Сохранить</button>
-                                                <button type="button" class="btn btn-outline-secondary js-close-editor">Закрыть</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="replace-pagination">
-                <span class="text-secondary small" id="paginationInfo"></span>
-                <button type="button" class="btn btn-outline-secondary btn-sm" id="prevPageBtn" aria-label="Предыдущая страница">&larr;</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" id="nextPageBtn" aria-label="Следующая страница">&rarr;</button>
+            <div class="tool-filter">
+                <label for="tableFilterInput">Быстрый фильтр по таблице</label>
+                <input type="search"
+                       id="tableFilterInput"
+                       class="form-control tool-filter-input"
+                       placeholder="DM, ID, партия, целевой код"
+                       autocomplete="off" />
             </div>
         </div>
+
+        <div class="tool-table-wrap">
+            <table class="tool-table">
+                <thead>
+                    <tr>
+                        <th scope="col">№</th>
+                        <th scope="col">ТЕ</th>
+                        <th scope="col">ID</th>
+                        <th scope="col">Текущий DM-код</th>
+                        <th scope="col">Партия</th>
+                        <th scope="col">Целевой код</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < Model.Results.Count; i++)
+                    {
+                        var row = Model.Results[i];
+
+                        <tr class="replace-row" data-row-index="@i" data-page-row="true">
+                            <td class="tool-table__row-number">@(i + 1)</td>
+                            <td class="tool-table__mono">@row.TeCode</td>
+                            <td class="tool-table__mono">@row.ItemId</td>
+                            <td class="tool-table__mono tool-table__break">@row.Barcode</td>
+                            <td>@row.BatchName</td>
+                            <td class="tool-table__mono">@row.TargetCode</td>
+                        </tr>
+
+                        <tr class="replace-editor-row" data-editor-for="@i">
+                            <td colspan="6" class="p-0">
+                                <div class="tool-inline-editor">
+                                    <form method="post" asp-page-handler="UpdateRow" class="tool-inline-editor__form replace-editor-form">
+                                        <input type="hidden" name="teCode" value="@Model.Search.TeCode" />
+                                        <input type="hidden" name="itemId" value="@row.ItemId" />
+
+                                        <div class="tool-form-group">
+                                            <label>Новый DM для ID @row.ItemId</label>
+                                            <input class="form-control tool-input"
+                                                   type="text"
+                                                   name="newDm"
+                                                   placeholder="Сканируйте или введите новое значение"
+                                                   autocomplete="off"
+                                                   spellcheck="false"
+                                                   maxlength="128"
+                                                   required />
+                                        </div>
+
+                                        <div class="tool-inline-editor__actions">
+                                            <button type="submit" class="btn-tool btn-tool--success">Сохранить</button>
+                                            <button type="button" class="btn-tool btn-tool--secondary js-close-editor">Закрыть</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="tool-pagination">
+            <span class="tool-pagination__info" id="paginationInfo"></span>
+            <button type="button" class="btn-tool btn-tool--secondary" id="prevPageBtn" aria-label="Предыдущая страница">←</button>
+            <button type="button" class="btn-tool btn-tool--secondary" id="nextPageBtn" aria-label="Следующая страница">→</button>
+        </div>
+    </section>
+}
+else
+{
+    <div class="tool-empty">
+        <div class="tool-empty__icon">↻</div>
+        <h2 class="tool-empty__title">Записи пока не загружены</h2>
+        <p class="tool-empty__text">Введите номер ТЕ и откройте список строк для точечной замены DM-кода.</p>
     </div>
 }
 
@@ -386,14 +250,14 @@
                     }
                 });
 
-                info.textContent = "Страница " + currentPage + " из " + totalPages + " (всего записей: " + filteredRows.length + ")";
+                info.textContent = "Страница " + currentPage + " из " + totalPages + " · записей: " + filteredRows.length;
                 prevBtn.disabled = currentPage <= 1;
                 nextBtn.disabled = currentPage >= totalPages;
 
                 if (searchResultInfo) {
                     searchResultInfo.textContent = filteredRows.length === rows.length
-                        ? "Показаны все записи"
-                        : "Найдено записей: " + filteredRows.length;
+                        ? "Щёлкните по строке, чтобы открыть замену DM"
+                        : "После фильтрации осталось записей: " + filteredRows.length;
                 }
             }
 

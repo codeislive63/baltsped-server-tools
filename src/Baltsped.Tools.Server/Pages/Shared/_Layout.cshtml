@@ -1,26 +1,115 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+﻿@using System.Linq
+@{
+    var currentPage = (ViewContext.RouteData.Values["page"]?.ToString() ?? string.Empty).ToLowerInvariant();
+
+    string NavClass(params string[] pages)
+    {
+        return pages.Any(p => string.Equals(currentPage, p.ToLowerInvariant(), StringComparison.Ordinal))
+            ? "app-nav__item is-active"
+            : "app-nav__item";
+    }
+}
+
+<!DOCTYPE html>
+<html lang="ru">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"]</title>
-    <script type="importmap"></script>
+    <title>@ViewData["Title"] - Baltsped Tools</title>
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Baltsped.Tools.Server.styles.css" asp-append-version="true" />
 </head>
-<body>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
+<body class="theme-dark">
+    <div class="app-shell" id="appShell">
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="app-sidebar__head">
+                <a asp-page="/Index" class="app-brand">
+                    <span class="app-brand__logo">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 5.5 12 2l8 3.5v13L12 22l-8-3.5v-13Z" fill="none" stroke="currentColor" stroke-width="1.7" />
+                            <path d="M12 2v20M4 5.5l8 3.5 8-3.5" fill="none" stroke="currentColor" stroke-width="1.7" />
+                        </svg>
+                    </span>
+
+                    <span class="app-brand__text">
+                        <span class="app-brand__name">BALTSPED</span>
+                        <span class="app-brand__sub">TOOLS</span>
+                    </span>
+                </a>
+
+                <button type="button"
+                        class="app-sidebar__toggle"
+                        id="sidebarToggle"
+                        aria-label="Свернуть или развернуть боковую панель">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 6h12M6 12h12M6 18h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <nav class="app-nav">
+                <a asp-page="/Index" class="@NavClass("", "/index")">
+                    <span class="app-nav__icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" fill="none" stroke="currentColor" stroke-width="1.7" />
+                        </svg>
+                    </span>
+                    <span class="app-nav__label">Инструменты</span>
+                </a>
+
+                <a asp-page="/Te/Lookup" class="@NavClass("/te/lookup")">
+                    <span class="app-nav__icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.7" />
+                            <path d="m16 16 4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                        </svg>
+                    </span>
+                    <span class="app-nav__label">Содержимое ТЕ</span>
+                </a>
+
+                <a asp-page="/Dm/Replace" class="@NavClass("/dm/replace")">
+                    <span class="app-nav__icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 7h10m0 0-3-3m3 3-3 3M20 17H10m0 0 3-3m-3 3 3 3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </span>
+                    <span class="app-nav__label">Замена DM-кодов</span>
+                </a>
+            </nav>
+
+            <div class="app-sidebar__footer">
+                <button type="button" class="theme-switch" id="themeSwitch">
+                    <span class="theme-switch__icon">
+                        <svg class="theme-switch__sun" viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.7" />
+                            <path d="M12 2.5v2.5M12 19v2.5M4.93 4.93l1.77 1.77M17.3 17.3l1.77 1.77M2.5 12H5M19 12h2.5M4.93 19.07l1.77-1.77M17.3 6.7l1.77-1.77" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                        </svg>
+                        <svg class="theme-switch__moon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M20 15.2A8.5 8.5 0 1 1 8.8 4 7 7 0 0 0 20 15.2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+                        </svg>
+                    </span>
+                    <span class="theme-switch__text" id="themeSwitchText">Сменить тему</span>
+                </button>
+
+                <div class="app-sidebar__info">
+                    <div class="app-sidebar__info-title">Внутренний рабочий контур</div>
+                    <div class="app-sidebar__info-text">Логистические инструменты Baltsped</div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="app-main">
+            <header class="app-topbar">
+                <div class="app-topbar__title">Baltsped Tools</div>
+            </header>
+
+            <div class="app-content w-full max-w-7xl mx-auto p-8 lg:p-12">
+                @RenderBody()
+            </div>
         </main>
     </div>
-
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; @DateTime.Now.Year - Baltsped logistic
-        </div>
-    </footer>
 
     <script src="~/lib/jquery/dist/jquery.min.js" asp-append-version="true"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
