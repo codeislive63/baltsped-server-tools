@@ -5,36 +5,42 @@
 }
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    @foreach (var tool in Model.Tools)
-    {
-        <div class="card-brand group relative flex flex-col h-full @(tool.IsAvailable ? string.Empty : "opacity-60 grayscale")">
+@foreach (var tool in Model.Tools)
+{
+        var cardClasses = $"card-brand group relative flex flex-col h-full {(tool.IsAvailable ? "cursor-pointer hover:border-brand-primary/60 transition-colors" : "opacity-60 grayscale")}";
+
+        @if (tool.IsAvailable)
+        {
+            <a href="@tool.Route" class="@cardClasses" aria-label="Открыть @tool.Title">
+                <div class="p-6 flex-1">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="badge badge-success">Доступен</span>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2 group-hover:text-brand-accent transition-colors">@tool.Title</h3>
+                    <p class="text-sm text-brand-text-muted leading-relaxed">@tool.Description</p>
+                </div>
+                <div class="px-6 py-4 bg-brand-surface-light/30 border-t border-brand-border flex justify-between items-center">
+                    <span class="text-brand-primary font-bold text-xs flex items-center gap-1">
+                        Открыть
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m9 6 6 6-6 6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    </span>
+                </div>
+            </a>
+        }
+        else
+        {
+            <div class="@cardClasses">
             <div class="p-6 flex-1">
                 <div class="flex justify-between items-start mb-4">
-                    @if (tool.IsAvailable)
-                    {
-                        <span class="badge badge-success">Доступен</span>
-                    }
-                    else
-                    {
-                        <span class="badge badge-error">Недоступен</span>
-                    }
+                    <span class="badge badge-error">Недоступен</span>
                 </div>
                 <h3 class="text-lg font-bold mb-2 group-hover:text-brand-accent transition-colors">@tool.Title</h3>
                 <p class="text-sm text-brand-text-muted leading-relaxed">@tool.Description</p>
             </div>
             <div class="px-6 py-4 bg-brand-surface-light/30 border-t border-brand-border flex justify-between items-center">
-                @if (tool.IsAvailable)
-                {
-                    <a href="@tool.Route" class="text-brand-primary font-bold text-xs flex items-center gap-1 hover:underline">
-                        Открыть
-                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m9 6 6 6-6 6" stroke-linecap="round" stroke-linejoin="round" /></svg>
-                    </a>
-                }
-                else
-                {
-                    <button disabled class="text-brand-primary font-bold text-xs flex items-center gap-1 disabled:no-underline">Недоступен</button>
-                }
+                <button disabled class="text-brand-primary font-bold text-xs flex items-center gap-1 disabled:no-underline">Недоступен</button>
             </div>
         </div>
+        }
     }
 </div>

@@ -73,10 +73,10 @@
                                 <span class="badge badge-success">active</span>
                             </td>
                             <td class="text-right">
-                                <form method="post" asp-page-handler="UpdateRow" class="inline-flex gap-2 items-center">
+                                <form method="post" asp-page-handler="UpdateRow" class="inline-flex gap-2 items-center js-dm-update-form">
                                     <input type="hidden" name="teCode" value="@Model.Search.TeCode" />
                                     <input type="hidden" name="itemId" value="@row.ItemId" />
-                                    <input type="text" name="newDm" class="input-field py-1 px-2 text-xs w-44" placeholder="Новый DM" required />
+                                    <input type="text" name="newDm" class="input-field py-1 px-2 text-xs w-44" placeholder="Новый DM" autocomplete="off" spellcheck="false" required />
                                     <button type="submit" class="btn-secondary py-1 px-3 text-xs">Заменить</button>
                                 </form>
                             </td>
@@ -98,4 +98,17 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.querySelectorAll(".js-dm-update-form").forEach(function (form) {
+            const dmInput = form.querySelector("input[name='newDm']");
+
+            if (!dmInput) {
+                return;
+            }
+
+            form.addEventListener("submit", function () {
+                dmInput.value = dmInput.value.replace(/\s+/g, "").trim();
+            });
+        });
+    </script>
 }

@@ -54,6 +54,33 @@
     @apply m-0 bg-brand-bg text-brand-text font-sans antialiased transition-colors duration-300;
   }
 
+
+   :root,
+  body,
+  #appShell,
+  #appSidebar,
+  main,
+  .card-brand,
+  .table-container,
+  .table-brand th,
+  .table-brand td,
+  .badge,
+  .btn-primary,
+  .btn-secondary,
+  .input-field {
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+    transition-duration: 300ms;
+    transition-timing-function: ease-in-out;
+  }
+
+  :root.theme-switching *,
+  :root.theme-switching *::before,
+  :root.theme-switching *::after {
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow !important;
+    transition-duration: 280ms !important;
+    transition-timing-function: ease-in-out !important;
+  }
+
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { @apply bg-brand-bg; }
   ::-webkit-scrollbar-thumb { @apply bg-brand-border rounded-full hover:bg-brand-border-focus; }
@@ -88,6 +115,8 @@
   #appSidebar.is-collapsed .sidebar-label { @apply hidden; }
   #appSidebar.is-collapsed .sidebar-logo-open { @apply hidden; }
   #appSidebar.is-collapsed .sidebar-profile { @apply justify-center px-0; }
+  #appShell.is-sidebar-collapsed #appSidebar { @apply w-0 border-r-0 overflow-hidden; }
+  #appShell.is-sidebar-collapsed main { @apply max-w-none; }
 }
 
 @layer utilities {

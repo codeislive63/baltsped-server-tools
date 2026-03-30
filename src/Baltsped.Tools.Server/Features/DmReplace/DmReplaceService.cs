@@ -103,7 +103,14 @@ public sealed class DmReplaceService(
             dbContext.Attach(entity);
             dbContext.Entry(entity).Property(x => x.Barcode).IsModified = true;
 
-            await dbContext.SaveChangesAsync(ct);
+            try
+            {
+                await dbContext.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException)
+            {
+                throw new ValidationException("Этот DM уже привязан к другой записи");
+            }
 
             DmReplaceLogMessages.UpdateCompleted(logger, itemId, normalizedTeCode);
 
@@ -139,7 +146,12 @@ public sealed class DmReplaceService(
     // Нормализует новый DM и не пропускает пустое значение
     private static string NormalizeDm(string dmCode)
     {
-        var normalizedDm = dmCode.Trim();
+        var normalizedDm = new string(
+            dmCode
+                .Trim()
+                .Where(ch => !char.IsWhiteSpace(ch))
+                .Select(MapCyrillicToLatin)
+                .ToArray());
 
         if (string.IsNullOrWhiteSpace(normalizedDm))
         {
@@ -148,4 +160,33 @@ public sealed class DmReplaceService(
 
         return normalizedDm;
     }
+
+    private static char MapCyrillicToLatin(char value) => value switch
+    {
+        'А' => 'A',
+        'В' => 'B',
+        'Е' => 'E',
+        'К' => 'K',
+        'М' => 'M',
+        'Н' => 'H',
+        'О' => 'O',
+        'Р' => 'P',
+        'С' => 'C',
+        'Т' => 'T',
+        'У' => 'Y',
+        'Х' => 'X',
+        'а' => 'a',
+        'в' => 'b',
+        'е' => 'e',
+        'к' => 'k',
+        'м' => 'm',
+        'н' => 'h',
+        'о' => 'o',
+        'р' => 'p',
+        'с' => 'c',
+        'т' => 't',
+        'у' => 'y',
+        'х' => 'x',
+        _ => value
+    };
 }

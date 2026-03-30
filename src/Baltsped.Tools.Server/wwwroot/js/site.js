@@ -12,6 +12,16 @@ document.addEventListener("DOMContentLoaded", function () {
     const themeStorageKey = "baltsped.theme";
     const sidebarStorageKey = "baltsped.sidebar.collapsed";
 
+    let themeSwitchTimer;
+
+    function beginThemeTransition() {
+        root.classList.add("theme-switching");
+        window.clearTimeout(themeSwitchTimer);
+        themeSwitchTimer = window.setTimeout(function () {
+            root.classList.remove("theme-switching");
+        }, 320);
+    }
+
     function applyTheme(theme) {
         const isLight = theme === "light";
         root.classList.toggle("light", isLight);
@@ -26,9 +36,33 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function applySidebarState(isCollapsed) {
-        appSidebar?.classList.toggle("is-collapsed", isCollapsed);
+        if (!appSidebar) {
+            return;
+        }
+
+        // Width/state toggle kept in JS so it works even if Tailwind build is stale.
+        appSidebar.classList.toggle("is-collapsed", isCollapsed);
+        appSidebar.classList.toggle("w-64", !isCollapsed);
+        appSidebar.classList.toggle("w-20", isCollapsed);
+
+        appSidebar.querySelectorAll(".sidebar-label").forEach(function (el) {
+            el.classList.toggle("hidden", isCollapsed);
+        });
+
+        appSidebar.querySelectorAll(".sidebar-logo-open").forEach(function (el) {
+            el.classList.toggle("hidden", isCollapsed);
+        });
+
+        appSidebar.querySelectorAll(".sidebar-profile").forEach(function (el) {
+            el.classList.toggle("justify-center", isCollapsed);
+            el.classList.toggle("px-0", isCollapsed);
+            el.classList.toggle("px-2", !isCollapsed);
+        });
+
+        sidebarToggle?.setAttribute("aria-expanded", String(!isCollapsed));
         sidebarIconOpen?.classList.toggle("hidden", isCollapsed);
         sidebarIconClosed?.classList.toggle("hidden", !isCollapsed);
+
         localStorage.setItem(sidebarStorageKey, String(isCollapsed));
     }
 
@@ -37,11 +71,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     themeSwitch?.addEventListener("click", function () {
         const isLight = root.classList.contains("light");
+        beginThemeTransition();
         applyTheme(isLight ? "dark" : "light");
     });
 
     sidebarToggle?.addEventListener("click", function () {
-        const isCollapsed = appSidebar?.classList.contains("is-collapsed");
+        const isCollapsed = appSidebar?.classList.contains("is-collapsed") ?? false;
         applySidebarState(!isCollapsed);
     });
 });

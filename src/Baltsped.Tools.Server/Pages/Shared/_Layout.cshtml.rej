@@ -1,0 +1,64 @@
+diff a/src/Baltsped.Tools.Server/Pages/Shared/_Layout.cshtml b/src/Baltsped.Tools.Server/Pages/Shared/_Layout.cshtml	(rejected hunks)
+@@ -24,60 +24,60 @@
+ <div class="flex min-h-screen bg-brand-bg" id="appShell">
+     <aside id="appSidebar"
+            class="group/sidebar w-64 bg-brand-surface border-r border-brand-border flex flex-col transition-all duration-300 h-screen sticky top-0">
+         <div class="p-6 flex items-center justify-between">
+             <a asp-page="/Index" class="sidebar-logo-open flex items-center gap-3">
+                 <div class="w-8 h-8 bg-brand-primary rounded-brand flex items-center justify-center">
+                     <svg class="text-white w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                         <path d="M4 5.5 12 2l8 3.5v13L12 22l-8-3.5v-13Z" />
+                         <path d="M12 2v20M4 5.5l8 3.5 8-3.5" />
+                     </svg>
+                 </div>
+                 <span class="font-bold text-lg tracking-tight uppercase">Baltsped</span>
+             </a>
+             <button id="sidebarToggle" class="p-1 hover:bg-brand-surface-light rounded-brand text-brand-text-muted" type="button" aria-label="Свернуть меню">
+                 <svg id="sidebarIconOpen" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                     <path d="M18 6 6 18M6 6l12 12" stroke-linecap="round" />
+                 </svg>
+                 <svg id="sidebarIconClosed" class="w-5 h-5 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                     <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" />
+                 </svg>
+             </button>
+         </div>
+ 
+         <nav class="flex-1 px-3 space-y-1 mt-4">
+             <a asp-page="/Index"
+-               class="w-full flex items-center gap-3 px-3 py-3 rounded-brand transition-all group @NavClass("", "/index")">
++               class="w-full flex items-center gap-3 px-3 py-3 rounded-brand transition-colors group @NavClass("", "/index")">
+                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                     <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
+                 </svg>
+                 <span class="sidebar-label font-medium text-sm">Инструменты</span>
+             </a>
+         </nav>
+ 
+         <div class="p-4 border-t border-brand-border space-y-4">
+-            <button id="themeSwitch" class="w-full flex items-center gap-3 px-3 py-2 rounded-brand transition-all hover:bg-brand-surface-light text-brand-text-muted hover:text-brand-text" type="button">
++            <button id="themeSwitch" class="w-full flex items-center gap-3 px-3 py-2 rounded-brand transition-colors hover:bg-brand-surface-light text-brand-text-muted hover:text-brand-text" type="button">
+                 <svg id="themeSun" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                     <circle cx="12" cy="12" r="4.2" />
+                     <path d="M12 2.5v2.5M12 19v2.5M4.93 4.93l1.77 1.77M17.3 17.3l1.77 1.77M2.5 12H5M19 12h2.5M4.93 19.07l1.77-1.77M17.3 6.7l1.77-1.77" stroke-linecap="round" />
+                 </svg>
+                 <svg id="themeMoon" class="w-5 h-5 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                     <path d="M20 15.2A8.5 8.5 0 1 1 8.8 4 7 7 0 0 0 20 15.2Z" stroke-linejoin="round" />
+                 </svg>
+                 <span id="themeSwitchText" class="sidebar-label font-medium text-sm">Светлая тема</span>
+             </button>
+ 
+             <div class="flex items-center gap-3 px-2 sidebar-profile">
+                 <div class="w-8 h-8 rounded-full bg-brand-surface-light border border-brand-border flex items-center justify-center text-xs font-bold text-brand-accent">
+                     JD
+                 </div>
+                 <div class="flex-1 overflow-hidden sidebar-label">
+                     <p class="text-xs font-semibold truncate">John Doe</p>
+                     <p class="text-[10px] text-brand-text-dim truncate">Logistics Manager</p>
+                 </div>
+             </div>
+         </div>
+     </aside>
+ 
+     <main class="flex-1 p-8 lg:p-12 max-w-7xl mx-auto w-full">
+         <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+             @RenderBody()
