@@ -81,7 +81,7 @@
     .btn-secondary,
     .input-field
   ) {
-    transition-property: background-color, border-color, color, fill, stroke;
+    transition-property: background-color, border-color, box-shadow;
     transition-duration: var(--theme-transition-duration);
     transition-timing-function: ease-in-out;
   }
