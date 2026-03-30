@@ -51,34 +51,60 @@
   }
 
   body {
-    @apply m-0 bg-brand-bg text-brand-text font-sans antialiased transition-colors duration-300;
+    @apply m-0 bg-brand-bg text-brand-text font-sans antialiased;
   }
 
+  :root {
+    --theme-transition-duration: 240ms;
+    color-scheme: dark;
+  }
 
-   :root,
-  body,
-  #appShell,
-  #appSidebar,
-  main,
-  .card-brand,
-  .table-container,
-  .table-brand th,
-  .table-brand td,
-  .badge,
-  .btn-primary,
-  .btn-secondary,
-  .input-field {
-    transition-property: background-color, border-color, color, fill, stroke, box-shadow;
-    transition-duration: 300ms;
+  :root.light {
+    color-scheme: light;
+  }
+
+  :where(
+    body,
+    #appShell,
+    #appSidebar,
+    main,
+    a,
+    button,
+    input,
+    svg,
+    .card-brand,
+    .table-container,
+    .table-brand th,
+    .table-brand td,
+    .badge,
+    .btn-primary,
+    .btn-secondary,
+    .input-field
+  ) {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-duration: var(--theme-transition-duration);
     transition-timing-function: ease-in-out;
   }
 
-  :root.theme-switching *,
-  :root.theme-switching *::before,
-  :root.theme-switching *::after {
-    transition-property: background-color, border-color, color, fill, stroke, box-shadow !important;
-    transition-duration: 280ms !important;
-    transition-timing-function: ease-in-out !important;
+  :root.theme-switching :where(
+    body,
+    #appShell,
+    #appSidebar,
+    main,
+    a,
+    button,
+    input,
+    svg,
+    .card-brand,
+    .table-container,
+    .table-brand th,
+    .table-brand td,
+    .badge,
+    .btn-primary,
+    .btn-secondary,
+    .input-field
+  ) {
+    transition-duration: 260ms !important;
   }
 
   ::-webkit-scrollbar { width: 8px; height: 8px; }

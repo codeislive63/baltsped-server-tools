@@ -13,13 +13,16 @@ document.addEventListener("DOMContentLoaded", function () {
     const sidebarStorageKey = "baltsped.sidebar.collapsed";
 
     let themeSwitchTimer;
+    let isThemeSwitching = false;
 
     function beginThemeTransition() {
+        isThemeSwitching = true;
         root.classList.add("theme-switching");
         window.clearTimeout(themeSwitchTimer);
         themeSwitchTimer = window.setTimeout(function () {
             root.classList.remove("theme-switching");
-        }, 320);
+            isThemeSwitching = false;
+        }, 280);
     }
 
     function applyTheme(theme) {
@@ -70,9 +73,15 @@ document.addEventListener("DOMContentLoaded", function () {
     applySidebarState(localStorage.getItem(sidebarStorageKey) === "true");
 
     themeSwitch?.addEventListener("click", function () {
+        if (isThemeSwitching) {
+            return;
+        }
+
         const isLight = root.classList.contains("light");
         beginThemeTransition();
-        applyTheme(isLight ? "dark" : "light");
+        window.requestAnimationFrame(function () {
+            applyTheme(isLight ? "dark" : "light");
+        });
     });
 
     sidebarToggle?.addEventListener("click", function () {
