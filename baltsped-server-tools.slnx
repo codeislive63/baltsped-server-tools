@@ -1,4 +1,8 @@
 <Solution>
   <Project Path="src/Baltsped.Tools.Server/Baltsped.Tools.Server.csproj" />
+  <Project Path="src/Baltsped.Tools.Web/baltsped.tools.web.esproj">
+    <Build />
+    <Deploy />
+  </Project>
   <Project Path="tests/Baltsped.Tools.Tests/Baltsped.Tools.Tests.csproj" />
 </Solution>
