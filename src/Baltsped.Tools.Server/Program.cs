@@ -25,6 +25,16 @@ builder.Host.UseSerilog((context, services, configuration) =>
 );
 
 builder.Services.AddRazorPages();
+builder.Services.AddControllers();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendDevelopment", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 // Db
 builder.Services.AddSqlServerDatabase(builder.Configuration);
@@ -44,10 +54,16 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
 }
 
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors("FrontendDevelopment");
+}
+
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthorization();
 
+app.MapControllers();
 app.MapRazorPages();
 
 app.Run();
