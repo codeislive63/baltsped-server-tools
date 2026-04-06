@@ -1,18 +1,23 @@
-﻿export function NotFound() {
+﻿import { AlertCircle } from 'lucide-react';
+import { AppLayout } from '../shared/layout/AppLayout';
+import { Header } from '../shared/ui/Header';
+
+export function NotFound() {
     return (
-        <main className="app-shell">
-            <a href="/" className="back-link">Назад к каталогу</a>
+        <AppLayout activePage="not-found">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <Header
+                    title="Страница не найдена"
+                    description="Похоже, что для этого маршрута страница ещё не создана или адрес введён неверно."
+                />
 
-            <header className="page-header">
-                <h1 className="page-title">Страница не найдена</h1>
-                <p className="page-description">
-                    Для этого маршрута React-страница пока не создана
-                </p>
-            </header>
-
-            <section className="empty-state">
-                Вернитесь в каталог и откройте доступный инструмент
-            </section>
-        </main>
+                <div className="card-brand p-12 flex flex-col items-center justify-center text-center border-dashed border-2 opacity-70">
+                    <AlertCircle size={48} className="text-brand-warning mb-4" />
+                    <p className="text-brand-text-muted">
+                        Вернитесь в каталог инструментов и откройте доступный раздел.
+                    </p>
+                </div>
+            </div>
+        </AppLayout>
     );
 }

@@ -1,172 +1,172 @@
 ﻿import { useState } from 'react';
-import { getJson } from '../shared/api/http';
-
-type TeLookupRowModel = {
-    teCode: string;
-    articleCode: string;
-    articleName: string;
-    barcode: string;
-    batchCode: string;
-};
+import { CheckCircle2, Package, RefreshCcw, Search, Trash2 } from 'lucide-react';
+import { AppLayout } from '../shared/layout/AppLayout';
+import { MOCK_TE_DATA } from '../shared/mock/teData';
+import type { TeRecord } from '../shared/types/app';
+import { Header } from '../shared/ui/Header';
 
 export function TeLookup() {
-    const [teCode, setTeCode] = useState('');
-    const [rows, setRows] = useState<TeLookupRowModel[]>([]);
-    const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [searchPerformed, setSearchPerformed] = useState(false);
+    const [search, setSearch] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    const [results, setResults] = useState<TeRecord[]>([]);
+    const [hasSearched, setHasSearched] = useState(false);
 
-    const uniqueArticlesCount = new Set(
-        rows
-            .map(row => row.articleCode)
-            .filter(value => value.trim().length > 0),
-    ).size;
+    function handleSearch(): void {
+        const normalizedSearch = search.trim();
 
-    async function handleSearchAsync(): Promise<void> {
-        const normalizedTeCode = teCode.trim();
-
-        if (normalizedTeCode.length === 0) {
-            setRows([]);
-            setSearchPerformed(true);
-            setError('Введите TE');
+        if (normalizedSearch.length === 0) {
             return;
         }
 
-        setTeCode(normalizedTeCode);
-        setIsLoading(true);
-        setSearchPerformed(true);
-        setError('');
+        setIsSearching(true);
 
-        try {
-            const loadedRows = await getJson<TeLookupRowModel[]>(
-                `/api/te/lookup?teCode=${encodeURIComponent(normalizedTeCode)}`,
-            );
-
-            setRows(loadedRows);
-        }
-        catch (exception) {
-            setRows([]);
-            setError(exception instanceof Error ? exception.message : 'Не удалось загрузить данные');
-        }
-        finally {
-            setIsLoading(false);
-        }
+        window.setTimeout(() => {
+            const foundResults = MOCK_TE_DATA.filter(record => record.teNumber.includes(normalizedSearch));
+            setResults(foundResults);
+            setIsSearching(false);
+            setHasSearched(true);
+        }, 800);
     }
 
-    function handleClear(): void {
-        setTeCode('');
-        setRows([]);
-        setError('');
-        setSearchPerformed(false);
+    function clear(): void {
+        setSearch('');
+        setResults([]);
+        setHasSearched(false);
     }
 
     return (
-        <main className="app-shell">
-            <a href="/" className="back-link">← Назад к каталогу</a>
+        <AppLayout activePage="te-viewer">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <Header
+                    title="Просмотр содержимого ТЕ"
+                    description="Поиск и анализ содержимого транспортных единиц. Введите номер ТЕ для получения детальной информации о вложенных DM-кодах и SKU."
+                />
 
-            <header className="page-header">
-                <h1 className="page-title">Просмотр содержимого ТЕ</h1>
-                <p className="page-description">
-                    Поиск и анализ содержимого транспортных единиц по номеру ТЕ
-                </p>
-            </header>
+                <div className="card-brand p-6 mb-8">
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <div className="flex-1 relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-text-dim" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Введите номер ТЕ (например, TE-99281)"
+                                className="input-field pl-10"
+                                value={search}
+                                onChange={(event) => setSearch(event.target.value)}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                        handleSearch();
+                                    }
+                                }}
+                            />
+                        </div>
 
-            <section className="form-card">
-                <form
-                    className="search-form"
-                    onSubmit={(event) => {
-                        event.preventDefault();
-                        void handleSearchAsync();
-                    }}
-                >
-                    <input
-                        type="text"
-                        value={teCode}
-                        onChange={(event) => setTeCode(event.target.value)}
-                        className="input-field"
-                        placeholder="Введите номер ТЕ"
-                    />
-                    <div className="button-group">
-                        <button type="submit" className="button-primary" disabled={isLoading}>
-                            {isLoading ? 'Загрузка...' : 'Найти'}
-                        </button>
-                        <button type="button" className="button-secondary" onClick={handleClear}>
-                            Очистить
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={handleSearch}
+                                disabled={isSearching || search.trim().length === 0}
+                                className="btn-primary min-w-[120px]"
+                            >
+                                {isSearching ? <RefreshCcw size={18} className="animate-spin" /> : 'Найти'}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={clear}
+                                className="btn-secondary"
+                            >
+                                <Trash2 size={18} />
+                            </button>
+                        </div>
                     </div>
-                </form>
-            </section>
+                </div>
 
-            {error.length > 0 && (
-                <section className="alert alert-error">
-                    {error}
-                </section>
-            )}
+                {hasSearched && results.length > 0 && (
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="card-brand p-4 bg-brand-surface-light/20">
+                                <p className="text-[10px] text-brand-text-dim uppercase font-bold mb-1">Всего записей</p>
+                                <p className="text-2xl font-mono font-bold">{results.length}</p>
+                            </div>
 
-            {rows.length > 0 && (
-                <>
-                    <section className="stats-grid">
-                        <article className="stat-card">
-                            <span className="stat-label">Всего записей</span>
-                            <strong className="stat-value">{rows.length}</strong>
-                        </article>
+                            <div className="card-brand p-4 bg-brand-surface-light/20">
+                                <p className="text-[10px] text-brand-text-dim uppercase font-bold mb-1">Уникальных SKU</p>
+                                <p className="text-2xl font-mono font-bold">
+                                    {new Set(results.map(record => record.sku)).size}
+                                </p>
+                            </div>
 
-                        <article className="stat-card">
-                            <span className="stat-label">Уникальных SKU</span>
-                            <strong className="stat-value">{uniqueArticlesCount}</strong>
-                        </article>
+                            <div className="card-brand p-4 bg-brand-surface-light/20">
+                                <p className="text-[10px] text-brand-text-dim uppercase font-bold mb-1">Общее кол-во</p>
+                                <p className="text-2xl font-mono font-bold">
+                                    {results.reduce((total, current) => total + current.quantity, 0)}
+                                </p>
+                            </div>
 
-                        <article className="stat-card">
-                            <span className="stat-label">Общее кол-во</span>
-                            <strong className="stat-value">{rows.length}</strong>
-                        </article>
+                            <div className="card-brand p-4 bg-brand-surface-light/20">
+                                <p className="text-[10px] text-brand-text-dim uppercase font-bold mb-1">Статус ТЕ</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <CheckCircle2 size={16} className="text-brand-success" />
+                                    <span className="text-sm font-bold text-brand-success">Проверено</span>
+                                </div>
+                            </div>
+                        </div>
 
-                        <article className="stat-card">
-                            <span className="stat-label">Статус ТЕ</span>
-                            <strong className="stat-value stat-value-success">Проверено</strong>
-                        </article>
-                    </section>
-
-                    <section className="table-card">
-                        <table className="data-table">
-                            <thead>
+                        <div className="table-container">
+                            <table className="table-brand">
+                                <thead>
                                 <tr>
-                                    <th>№</th>
-                                    <th>ТЕ</th>
-                                    <th>Артикул</th>
-                                    <th>Наименование</th>
-                                    <th>Штрихкод</th>
-                                    <th>Код партии</th>
+                                    <th>ID Записи</th>
+                                    <th>DM Код</th>
+                                    <th>SKU</th>
+                                    <th>Кол-во</th>
+                                    <th>Статус</th>
+                                    <th>Время</th>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {rows.map((row, index) => (
-                                    <tr key={`${row.barcode}-${index}`}>
-                                        <td>{index + 1}</td>
-                                        <td className="mono-cell">{row.teCode}</td>
-                                        <td className="mono-cell">{row.articleCode}</td>
-                                        <td>{row.articleName}</td>
-                                        <td className="mono-cell">{row.barcode}</td>
-                                        <td className="mono-cell">{row.batchCode}</td>
+                                </thead>
+                                <tbody>
+                                {results.map((row) => (
+                                    <tr key={row.id}>
+                                        <td className="font-mono text-brand-text-dim">{row.id}</td>
+                                        <td className="font-mono font-bold text-brand-accent">{row.dmCode}</td>
+                                        <td className="font-mono">{row.sku}</td>
+                                        <td className="font-mono">{row.quantity}</td>
+                                        <td>
+                                            {row.status === 'active' && <span className="badge badge-success">Активен</span>}
+                                            {row.status === 'replaced' && <span className="badge badge-warning">Заменен</span>}
+                                            {row.status === 'error' && <span className="badge badge-error">Ошибка</span>}
+                                        </td>
+                                        <td className="text-xs text-brand-text-dim">{row.timestamp}</td>
                                     </tr>
                                 ))}
-                            </tbody>
-                        </table>
-                    </section>
-                </>
-            )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
 
-            {searchPerformed && rows.length === 0 && error.length === 0 && !isLoading && (
-                <section className="empty-state">
-                    По вашему запросу ничего не найдено. Проверьте правильность номера ТЕ
-                </section>
-            )}
+                {hasSearched && results.length === 0 && (
+                    <div className="card-brand p-12 flex flex-col items-center justify-center text-center">
+                        <div className="w-16 h-16 bg-brand-surface-light rounded-full flex items-center justify-center mb-4 border border-brand-border">
+                            <Search size={32} className="text-brand-text-dim" />
+                        </div>
 
-            {!searchPerformed && (
-                <section className="empty-state">
-                    Ожидание ввода номера транспортной единицы...
-                </section>
-            )}
-        </main>
+                        <h3 className="text-xl font-bold mb-2">Ничего не найдено</h3>
+
+                        <p className="text-brand-text-muted max-w-md">
+                            По вашему запросу <span className="text-brand-text font-mono">"{search}"</span> данных не обнаружено.
+                            Проверьте правильность ввода номера ТЕ.
+                        </p>
+                    </div>
+                )}
+
+                {!hasSearched && (
+                    <div className="card-brand p-12 border-dashed border-2 flex flex-col items-center justify-center text-center opacity-50">
+                        <Package size={48} className="text-brand-text-dim mb-4" />
+                        <p className="text-brand-text-muted">Ожидание ввода номера транспортной единицы...</p>
+                    </div>
+                )}
+            </div>
+        </AppLayout>
     );
 }

@@ -1,250 +1,184 @@
 ﻿import { useState } from 'react';
-import { getJson, postJson } from '../shared/api/http';
+import {
+    AlertCircle,
+    ArrowRightLeft,
+    CheckCircle2,
+    Filter,
+    RefreshCcw,
+    XCircle,
+} from 'lucide-react';
+import { AppLayout } from '../shared/layout/AppLayout';
+import { MOCK_TE_DATA } from '../shared/mock/teData';
+import type { TeRecord } from '../shared/types/app';
+import { Header } from '../shared/ui/Header';
 
-type DmReplaceRowModel = {
-    itemId: number;
-    barcode: string;
-    teCode: string;
-    batchName: string;
-    targetCode: string;
-};
-
-type DmChangedItemModel = {
-    itemId: number;
-    previousDm: string;
-    newDm: string;
-};
-
-type DmReplaceUpdateResultModel = {
-    updatedCount: number;
-    updatedItems: DmChangedItemModel[];
-};
-
-type DmReplaceUpdateRequestModel = {
-    teCode: string;
-    newDm: string;
+type MessageModel = {
+    type: 'success' | 'error' | 'warning';
+    text: string;
 };
 
 export function DmReplace() {
-    const [teCode, setTeCode] = useState('');
-    const [rows, setRows] = useState<DmReplaceRowModel[]>([]);
-    const [newDmValues, setNewDmValues] = useState<Record<number, string>>({});
-    const [error, setError] = useState('');
-    const [searchPerformed, setSearchPerformed] = useState(false);
+    const [te, setTe] = useState('');
     const [isSearching, setIsSearching] = useState(false);
-    const [updatingItemId, setUpdatingItemId] = useState<number | null>(null);
-    const [updateSummary, setUpdateSummary] = useState<DmReplaceUpdateResultModel | null>(null);
+    const [data, setData] = useState<TeRecord[]>([]);
+    const [message, setMessage] = useState<MessageModel | null>(null);
 
-    async function handleSearchAsync(): Promise<void> {
-        const normalizedTeCode = teCode.trim();
+    function handleSearch(): void {
+        const normalizedTe = te.trim();
 
-        if (normalizedTeCode.length === 0) {
-            setRows([]);
-            setSearchPerformed(true);
-            setUpdateSummary(null);
-            setError('Введите TE');
+        if (normalizedTe.length === 0) {
             return;
         }
 
-        setTeCode(normalizedTeCode);
         setIsSearching(true);
-        setSearchPerformed(true);
-        setUpdateSummary(null);
-        setError('');
 
-        try {
-            await loadRowsAsync(normalizedTeCode);
-        }
-        catch (exception) {
-            setRows([]);
-            setError(exception instanceof Error ? exception.message : 'Не удалось загрузить данные');
-        }
-        finally {
+        window.setTimeout(() => {
+            setData(MOCK_TE_DATA.filter(record => record.teNumber === normalizedTe));
             setIsSearching(false);
-        }
+
+            if (normalizedTe === 'TE-44120') {
+                setMessage({
+                    type: 'warning',
+                    text: 'Обнаружены критические ошибки в структуре ТЕ. Требуется ручная проверка.',
+                });
+            }
+            else {
+                setMessage(null);
+            }
+        }, 600);
     }
 
-    function handleNewDmChange(itemId: number, value: string): void {
-        setNewDmValues(currentValues => ({
-            ...currentValues,
-            [itemId]: value,
-        }));
-    }
-
-    async function handleUpdateAsync(itemId: number): Promise<void> {
-        const normalizedTeCode = teCode.trim();
-        const normalizedNewDm = (newDmValues[itemId] ?? '').replace(/\s+/g, '').trim();
-
-        if (normalizedTeCode.length === 0) {
-            setError('Введите TE');
-            return;
-        }
-
-        if (normalizedNewDm.length === 0) {
-            setError('Введите новый DM');
-            return;
-        }
-
-        setUpdatingItemId(itemId);
-        setUpdateSummary(null);
-        setError('');
-
-        try {
-            const result = await postJson<DmReplaceUpdateResultModel, DmReplaceUpdateRequestModel>(
-                `/api/dm/replace/${itemId}`,
-                {
-                    teCode: normalizedTeCode,
-                    newDm: normalizedNewDm,
-                }
-            );
-
-            setUpdateSummary(result);
-
-            setNewDmValues(currentValues => ({
-                ...currentValues,
-                [itemId]: '',
-            }));
-
-            await loadRowsAsync(normalizedTeCode);
-        }
-        catch (exception) {
-            setError(exception instanceof Error ? exception.message : 'Не удалось обновить DM код');
-        }
-        finally {
-            setUpdatingItemId(null);
-        }
-    }
-
-    async function loadRowsAsync(currentTeCode: string): Promise<void> {
-        const loadedRows = await getJson<DmReplaceRowModel[]>(
-            `/api/dm/replace?teCode=${encodeURIComponent(currentTeCode)}`,
+    function replaceCode(id: string): void {
+        setData(previousData =>
+            previousData.map(item =>
+                item.id === id
+                    ? {
+                        ...item,
+                        status: 'replaced',
+                        dmCode: `DM-NEW-${Math.floor(Math.random() * 1000)}`,
+                    }
+                    : item,
+            ),
         );
 
-        setRows(loadedRows);
-        setNewDmValues(currentValues => {
-            const nextValues: Record<number, string> = {};
-
-            for (const row of loadedRows) {
-                nextValues[row.itemId] = currentValues[row.itemId] ?? '';
-            }
-
-            return nextValues;
+        setMessage({
+            type: 'success',
+            text: `DM-код для записи ${id} успешно обновлен.`,
         });
     }
 
     return (
-        <main className="app-shell">
-            <a href="/" className="back-link">← Назад к каталогу</a>
+        <AppLayout activePage="dm-replacement">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <Header
+                    title="Замена DM-кодов"
+                    description="Инструмент для оперативной замены поврежденных или некорректных DataMatrix кодов в рамках транспортной единицы."
+                />
 
-            <header className="page-header">
-                <h1 className="page-title">Замена DM-кодов</h1>
-                <p className="page-description">
-                    Поиск записей по номеру ТЕ и обновление DM-кода для выбранной строки
-                </p>
-            </header>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-1 space-y-6">
+                        <div className="card-brand p-6">
+                            <h3 className="text-sm font-bold uppercase tracking-wider text-brand-text-muted mb-4 flex items-center gap-2">
+                                <Filter size={16} /> Поиск ТЕ
+                            </h3>
 
-            <section className="form-card">
-                <form
-                    className="search-form"
-                    onSubmit={(event) => {
-                        event.preventDefault();
-                        void handleSearchAsync();
-                    }}
-                >
-                    <input
-                        type="text"
-                        value={teCode}
-                        onChange={(event) => setTeCode(event.target.value)}
-                        className="input-field"
-                        placeholder="Введите номер ТЕ"
-                    />
-                    <div className="button-group">
-                        <button type="submit" className="button-primary" disabled={isSearching}>
-                            {isSearching ? 'Загрузка...' : 'Загрузить данные'}
-                        </button>
-                    </div>
-                </form>
-            </section>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-brand-text-dim uppercase mb-1.5">
+                                        Номер ТЕ
+                                    </label>
+                                    <input
+                                        type="text"
+                                        className="input-field"
+                                        placeholder="Напр. TE-99281"
+                                        value={te}
+                                        onChange={(event) => setTe(event.target.value)}
+                                    />
+                                </div>
 
-            {error.length > 0 && (
-                <section className="alert alert-error">
-                    {error}
-                </section>
-            )}
-
-            {updateSummary !== null && updateSummary.updatedCount > 0 && (
-                <section className="alert alert-success">
-                    <div className="alert-title">DM-код успешно обновлён</div>
-                    {updateSummary.updatedItems.map(item => (
-                        <div key={item.itemId} className="alert-line mono-cell">
-                            #{item.itemId}: {item.previousDm} → {item.newDm}
+                                <button
+                                    type="button"
+                                    onClick={handleSearch}
+                                    disabled={isSearching || te.trim().length === 0}
+                                    className="btn-primary w-full"
+                                >
+                                    {isSearching ? <RefreshCcw size={18} className="animate-spin" /> : 'Загрузить данные'}
+                                </button>
+                            </div>
                         </div>
-                    ))}
-                </section>
-            )}
 
-            {updateSummary !== null && updateSummary.updatedCount === 0 && (
-                <section className="alert alert-warning">
-                    Изменений не внесено
-                </section>
-            )}
+                        {message && (
+                            <div
+                                className={`p-4 rounded-brand border flex gap-3 animate-in zoom-in-95 duration-300 ${
+                                    message.type === 'success'
+                                        ? 'bg-brand-success/10 border-brand-success/30 text-brand-success'
+                                        : message.type === 'error'
+                                            ? 'bg-brand-error/10 border-brand-error/30 text-brand-error'
+                                            : 'bg-brand-warning/10 border-brand-warning/30 text-brand-warning'
+                                }`}
+                            >
+                                {message.type === 'success' && <CheckCircle2 size={20} className="shrink-0" />}
+                                {message.type === 'error' && <XCircle size={20} className="shrink-0" />}
+                                {message.type === 'warning' && <AlertCircle size={20} className="shrink-0" />}
+                                <p className="text-sm font-medium">{message.text}</p>
+                            </div>
+                        )}
+                    </div>
 
-            {rows.length > 0 && (
-                <section className="table-card">
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>DM код</th>
-                                <th>Партия</th>
-                                <th>Target</th>
-                                <th>Новый DM</th>
-                                <th>Действие</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rows.map(row => (
-                                <tr key={row.itemId}>
-                                    <td className="mono-cell">{row.barcode}</td>
-                                    <td>{row.batchName || '—'}</td>
-                                    <td className="mono-cell">{row.targetCode || '—'}</td>
-                                    <td>
-                                        <input
-                                            type="text"
-                                            value={newDmValues[row.itemId] ?? ''}
-                                            onChange={(event) => handleNewDmChange(row.itemId, event.target.value)}
-                                            className="input-field input-field-compact"
-                                            placeholder="Новый DM"
-                                            disabled={updatingItemId !== null}
-                                        />
-                                    </td>
-                                    <td>
-                                        <button
-                                            type="button"
-                                            className="button-secondary"
-                                            disabled={updatingItemId !== null}
-                                            onClick={() => void handleUpdateAsync(row.itemId)}
-                                        >
-                                            {updatingItemId === row.itemId ? 'Сохранение...' : 'Заменить'}
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </section>
-            )}
-
-            {searchPerformed && rows.length === 0 && error.length === 0 && !isSearching && (
-                <section className="empty-state">
-                    По заданному TE записи не найдены
-                </section>
-            )}
-
-            {!searchPerformed && (
-                <section className="empty-state">
-                    Загрузите данные ТЕ для начала работы
-                </section>
-            )}
-        </main>
+                    <div className="lg:col-span-2">
+                        {data.length > 0 ? (
+                            <div className="table-container">
+                                <table className="table-brand">
+                                    <thead>
+                                    <tr>
+                                        <th>DM Код</th>
+                                        <th>SKU</th>
+                                        <th>Статус</th>
+                                        <th className="text-right">Действие</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {data.map((row) => (
+                                        <tr key={row.id}>
+                                            <td className="font-mono font-bold">{row.dmCode}</td>
+                                            <td className="font-mono text-xs">{row.sku}</td>
+                                            <td>
+                                                    <span
+                                                        className={`badge ${
+                                                            row.status === 'active'
+                                                                ? 'badge-success'
+                                                                : row.status === 'replaced'
+                                                                    ? 'badge-warning'
+                                                                    : 'badge-error'
+                                                        }`}
+                                                    >
+                                                        {row.status}
+                                                    </span>
+                                            </td>
+                                            <td className="text-right">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => replaceCode(row.id)}
+                                                    disabled={row.status === 'replaced'}
+                                                    className="btn-secondary py-1 px-3 text-xs"
+                                                >
+                                                    <ArrowRightLeft size={14} /> Заменить
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="card-brand p-12 flex flex-col items-center justify-center text-center border-dashed border-2 opacity-50 h-full">
+                                <RefreshCcw size={48} className="text-brand-text-dim mb-4" />
+                                <p className="text-brand-text-muted">Загрузите данные ТЕ для начала работы</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </AppLayout>
     );
 }

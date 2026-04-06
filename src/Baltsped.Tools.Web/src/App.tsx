@@ -4,7 +4,9 @@ import { NotFound } from './pages/NotFound';
 import { TeLookup } from './pages/TeLookup';
 
 function App() {
-    switch (window.location.pathname.toLowerCase()) {
+    const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
+
+    switch (normalizedPath.toLowerCase()) {
         case '/':
             return <Home />;
 
