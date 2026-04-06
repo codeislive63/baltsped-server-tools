@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     LayoutGrid,
     Search,
@@ -10,12 +9,15 @@ import {
     Sun,
     Moon,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { Page, Theme } from '../types/app';
 
 type SidebarProps = {
     activePage: Page;
     theme: Theme;
     toggleTheme: () => void;
+    isOpen: boolean;
+    toggleOpen: () => void;
 };
 
 type NavItem = {
@@ -26,33 +28,20 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-    {
-        id: 'catalog',
-        label: 'Инструменты',
-        href: '/',
-        icon: LayoutGrid,
-    },
-    {
-        id: 'te-viewer',
-        label: 'Содержимое ТЕ',
-        href: '/te/lookup',
-        icon: Search,
-    },
-    {
-        id: 'dm-replacement',
-        label: 'Замена DM-кодов',
-        href: '/dm/replace',
-        icon: RefreshCcw,
-    },
+    { id: 'catalog', label: 'Инструменты', href: '/', icon: LayoutGrid },
+    { id: 'te-viewer', label: 'Содержимое ТЕ', href: '/te/lookup', icon: Search },
+    { id: 'dm-replacement', label: 'Замена DM-кодов', href: '/dm/replace', icon: RefreshCcw },
 ];
 
-export function Sidebar({ activePage, theme, toggleTheme }: SidebarProps) {
-    const [isOpen, setIsOpen] = useState(true);
-
+export function Sidebar({
+                            activePage,
+                            theme,
+                            toggleTheme,
+                            isOpen,
+                            toggleOpen,
+                        }: SidebarProps) {
     return (
-        <aside
-            className={`${isOpen ? 'w-64' : 'w-20'} bg-brand-surface border-r border-brand-border flex flex-col h-screen sticky top-0`}
-        >
+        <aside className={`${isOpen ? 'w-64' : 'w-20'} bg-brand-surface border-r border-brand-border flex flex-col h-screen sticky top-0`}>
             <div className={`p-6 flex items-center ${isOpen ? 'justify-between' : 'justify-center'}`}>
                 {isOpen && (
                     <div className="flex items-center gap-3">
@@ -65,7 +54,7 @@ export function Sidebar({ activePage, theme, toggleTheme }: SidebarProps) {
 
                 <button
                     type="button"
-                    onClick={() => setIsOpen(!isOpen)}
+                    onClick={toggleOpen}
                     className="p-1 hover:bg-brand-surface-light rounded-brand text-brand-text-muted"
                 >
                     {isOpen ? <X size={20} /> : <Menu size={20} />}
@@ -77,9 +66,9 @@ export function Sidebar({ activePage, theme, toggleTheme }: SidebarProps) {
                     const Icon = item.icon;
 
                     return (
-                        <a
+                        <Link
                             key={item.id}
-                            href={item.href}
+                            to={item.href}
                             className={`w-full flex items-center gap-3 px-3 py-3 rounded-brand group ${
                                 activePage === item.id
                                     ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20'
@@ -95,7 +84,7 @@ export function Sidebar({ activePage, theme, toggleTheme }: SidebarProps) {
                                 }
                             />
                             {isOpen && <span className="font-medium text-sm">{item.label}</span>}
-                        </a>
+                        </Link>
                     );
                 })}
             </nav>

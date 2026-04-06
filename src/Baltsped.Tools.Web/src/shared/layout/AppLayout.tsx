@@ -8,6 +8,7 @@ type AppLayoutProps = PropsWithChildren<{
 }>;
 
 const themeStorageKey = 'baltsped-tools-theme';
+const sidebarStorageKey = 'baltsped-tools-sidebar-open';
 
 export function AppLayout({ activePage, children }: AppLayoutProps) {
     const [theme, setTheme] = useState<Theme>(() => {
@@ -16,23 +17,38 @@ export function AppLayout({ activePage, children }: AppLayoutProps) {
         }
 
         const savedTheme = window.localStorage.getItem(themeStorageKey);
-
         return savedTheme === 'light' ? 'light' : 'dark';
+    });
+
+    const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
+        if (typeof window === 'undefined') {
+            return true;
+        }
+
+        const savedValue = window.localStorage.getItem(sidebarStorageKey);
+        return savedValue !== 'false';
     });
 
     useEffect(() => {
         if (theme === 'light') {
             document.documentElement.classList.add('light');
-        }
-        else {
+        } else {
             document.documentElement.classList.remove('light');
         }
 
         window.localStorage.setItem(themeStorageKey, theme);
     }, [theme]);
 
+    useEffect(() => {
+        window.localStorage.setItem(sidebarStorageKey, String(isSidebarOpen));
+    }, [isSidebarOpen]);
+
     function toggleTheme(): void {
         setTheme(currentTheme => currentTheme === 'dark' ? 'light' : 'dark');
+    }
+
+    function toggleSidebar(): void {
+        setIsSidebarOpen(currentValue => !currentValue);
     }
 
     return (
@@ -41,6 +57,8 @@ export function AppLayout({ activePage, children }: AppLayoutProps) {
                 activePage={activePage}
                 theme={theme}
                 toggleTheme={toggleTheme}
+                isOpen={isSidebarOpen}
+                toggleOpen={toggleSidebar}
             />
 
             <main className="flex-1 p-8 lg:p-12 max-w-7xl mx-auto w-full">
