@@ -4,7 +4,6 @@ import {
     Clock3,
     FolderKanban,
     PackageSearch,
-    Sparkles,
     Wrench,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -16,17 +15,17 @@ import { Header } from '../shared/ui/Header';
 
 export function Home() {
     const totalTools = MOCK_TOOLS.length;
-    const availableTools = MOCK_TOOLS.filter((tool) => tool.available).length;
-    const unavailableTools = totalTools - availableTools;
+    const readyTools = MOCK_TOOLS.filter((tool) => tool.available && tool.route).length;
+    const unavailableTools = totalTools - readyTools;
 
     const activityData = [
-        { label: 'Пн', processed: 148, issues: 3 },
-        { label: 'Вт', processed: 164, issues: 2 },
-        { label: 'Ср', processed: 172, issues: 4 },
-        { label: 'Чт', processed: 191, issues: 1 },
-        { label: 'Пт', processed: 183, issues: 2 },
-        { label: 'Сб', processed: 156, issues: 5 },
-        { label: 'Вс', processed: 138, issues: 3 },
+        { label: 'Пн', processed: 148 },
+        { label: 'Вт', processed: 164 },
+        { label: 'Ср', processed: 172 },
+        { label: 'Чт', processed: 191 },
+        { label: 'Пт', processed: 183 },
+        { label: 'Сб', processed: 156 },
+        { label: 'Вс', processed: 138 },
     ];
     const maxProcessed = Math.max(...activityData.map((entry) => entry.processed));
 
@@ -39,10 +38,8 @@ export function Home() {
                 />
 
                 <section className="relative overflow-hidden rounded-[28px] border border-border bg-card px-6 py-6 shadow-sm md:px-8 md:py-8 animate-in fade-in slide-in-from-top-4 duration-500">
-                    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(15,23,42,0.03),transparent_38%,rgba(37,99,235,0.06)_100%)]" />
-                    <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 border-l border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.7),rgba(241,245,249,0.85))]" />
+                    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(15,23,42,0.03),transparent_52%,rgba(37,99,235,0.05)_100%)]" />
                     <div className="pointer-events-none absolute right-10 top-8 h-24 w-24 rounded-full border border-blue-100 bg-blue-50/80" />
-                    <div className="pointer-events-none absolute bottom-8 right-20 h-14 w-14 rounded-2xl border border-slate-200 bg-white/90 shadow-sm" />
 
                     <div className="relative z-10 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
                         <div className="space-y-4">
@@ -60,17 +57,13 @@ export function Home() {
                                         <ChevronRight />
                                     </Link>
                                 </Button>
-                                <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs text-muted-foreground shadow-sm">
-                                    <Sparkles className="size-4 text-slate-500" />
-                                    Спокойный light-only интерфейс для ежедневной работы
-                                </div>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3 self-start">
                             {[
                                 { label: 'Каталог', value: totalTools, icon: FolderKanban },
-                                { label: 'Доступно', value: availableTools, icon: CheckCircle2 },
+                                { label: 'Готово', value: readyTools, icon: CheckCircle2 },
                                 { label: 'Ожидают запуска', value: unavailableTools, icon: Clock3 },
                                 { label: 'Активный модуль', value: 'ТЕ', icon: PackageSearch },
                             ].map((item) => {
@@ -100,9 +93,9 @@ export function Home() {
                             description: 'В каталоге рабочей панели',
                         },
                         {
-                            title: 'Активные инструменты',
-                            value: availableTools,
-                            description: 'Готовы к использованию сейчас',
+                            title: 'Feature-ready',
+                            value: readyTools,
+                            description: 'Реально готовые рабочие сценарии',
                         },
                         {
                             title: 'Требуют подключения',
@@ -133,7 +126,7 @@ export function Home() {
                             <div>
                                 <h3 className="text-base font-semibold">Операционная активность по дням</h3>
                                 <p className="text-sm text-muted-foreground">
-                                    Выполненные операции и количество инцидентов за последнюю неделю
+                                    Выполненные операции за последнюю неделю
                                 </p>
                             </div>
                             <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium text-muted-foreground">
@@ -142,10 +135,9 @@ export function Home() {
                         </div>
 
                         <div className="rounded-2xl border border-border/70 bg-muted/[0.18] p-4">
-                            <div className="mb-4 grid grid-cols-[1fr_auto_auto] gap-3 border-b border-border/70 pb-3 text-xs text-muted-foreground">
+                            <div className="mb-4 grid grid-cols-[1fr_auto] gap-3 border-b border-border/70 pb-3 text-xs text-muted-foreground">
                                 <span>День</span>
                                 <span>Операции</span>
-                                <span>Инциденты</span>
                             </div>
                             <div className="space-y-3">
                                 {activityData.map((entry) => (
@@ -157,21 +149,15 @@ export function Home() {
                                                 style={{ width: `${Math.round((entry.processed / maxProcessed) * 100)}%` }}
                                             />
                                         </div>
-                                        <div className="flex min-w-[88px] items-center justify-between gap-3 text-xs">
-                                            <span className="font-medium text-foreground">{entry.processed}</span>
-                                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">
-                                                {entry.issues}
-                                            </span>
-                                        </div>
+                                        <span className="min-w-[44px] text-right text-sm font-semibold text-foreground">{entry.processed}</span>
                                     </div>
                                 ))}
                             </div>
 
-                            <div className="mt-5 grid gap-3 border-t border-border/70 pt-4 md:grid-cols-3">
+                            <div className="mt-5 grid gap-3 border-t border-border/70 pt-4 md:grid-cols-2">
                                 {[
                                     { label: 'Пиковый день', value: 'Чт', icon: Wrench },
                                     { label: 'Операций за неделю', value: '1 152', icon: FolderKanban },
-                                    { label: 'Инцидентов', value: '20', icon: Clock3 },
                                 ].map((item) => {
                                     const Icon = item.icon;
                                     return (
@@ -241,7 +227,7 @@ export function Home() {
                     <div className="flex flex-wrap items-center justify-between gap-3">
                         <h3 className="text-xl font-semibold tracking-tight">Инструменты</h3>
                         <span className="rounded-full border border-border bg-muted/30 px-3 py-1 text-xs text-muted-foreground">
-                            {availableTools} из {totalTools} доступны
+                            {readyTools} из {totalTools} готовы к работе
                         </span>
                     </div>
 

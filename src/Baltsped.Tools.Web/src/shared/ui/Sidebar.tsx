@@ -1,9 +1,8 @@
 import {
-    Boxes,
-    ClipboardList,
-    Search,
-    ScanSearch,
-    RefreshCcw,
+    Blocks,
+    CircleUserRound,
+    QrCode,
+    ScanLine,
     Menu,
     X,
 } from 'lucide-react';
@@ -17,7 +16,7 @@ type SidebarProps = {
 type NavItem = {
     label: string;
     href: string;
-    icon: typeof Boxes;
+    icon: typeof Blocks;
     end?: boolean;
 };
 
@@ -25,18 +24,18 @@ const navItems: NavItem[] = [
     {
         label: 'Инструменты',
         href: '/',
-        icon: Boxes,
+        icon: Blocks,
         end: true,
     },
     {
         label: 'Проверка ТЕ',
         href: '/te/lookup',
-        icon: ScanSearch,
+        icon: ScanLine,
     },
     {
         label: 'ДМ коды',
         href: '/dm/replace',
-        icon: RefreshCcw,
+        icon: QrCode,
     },
 ];
 
@@ -72,23 +71,6 @@ export function Sidebar({
                 >
                     {isOpen ? <X size={20} /> : <Menu size={20} />}
                 </button>
-            </div>
-
-            <div className="px-4 pt-5">
-                {isOpen ? (
-                    <div className="rounded-2xl border border-border bg-muted/30 px-3 py-3">
-                        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                            Рабочее пространство
-                        </p>
-                        <p className="mt-1 text-sm font-medium text-foreground">
-                            Каталог инструментов и операционные сценарии
-                        </p>
-                    </div>
-                ) : (
-                    <div className="mx-auto flex size-10 items-center justify-center rounded-2xl border border-border bg-muted/30">
-                        <Search size={16} className="text-muted-foreground" />
-                    </div>
-                )}
             </div>
 
             <nav className="flex-1 space-y-1 px-3 py-5">
@@ -129,13 +111,13 @@ export function Sidebar({
             <div className="border-t border-border p-4">
                 <div className={`flex items-center gap-3 rounded-2xl border border-border bg-background px-3 py-3 ${isOpen ? '' : 'justify-center px-0'}`}>
                     <div className="flex size-9 items-center justify-center rounded-xl bg-muted text-slate-700">
-                        <ClipboardList size={18} />
+                        <CircleUserRound size={18} />
                     </div>
                     {isOpen && (
                         <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-foreground">Светлая тема активна</p>
+                            <p className="truncate text-sm font-medium text-foreground">Дмитрий Орлов</p>
                             <p className="truncate text-xs text-muted-foreground">
-                                Базовая навигация и рабочие модули
+                                Supervisor · role model: warehouse.supervisor
                             </p>
                         </div>
                     )}
