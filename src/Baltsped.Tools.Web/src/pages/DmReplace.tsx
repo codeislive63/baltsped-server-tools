@@ -2,11 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     AlertCircle,
     CheckCircle2,
-    Clock3,
     LoaderCircle,
-    ScanLine,
     RefreshCcw,
     Search,
+    Workflow,
     XCircle,
 } from 'lucide-react';
 import { AppLayout } from '../shared/layout/AppLayout';
@@ -16,6 +15,16 @@ type MessageModel = {
     type: 'success' | 'error' | 'warning';
     text: string;
 };
+
+type FlowStatus =
+    | 'idle'
+    | 'te-loaded'
+    | 'row-found'
+    | 'row-not-found'
+    | 'new-dm-exists'
+    | 'same-dm'
+    | 'replace-success'
+    | 'error';
 
 type DmReplaceRowModel = {
     itemId: number;
@@ -34,17 +43,45 @@ type DmReplaceUpdateResultModel = {
     }>;
 };
 
-type HistoryRow = {
-    id: string;
-    teCode: string;
-    itemId: number;
-    oldDm: string;
-    newDm: string;
-    changedAt: string;
+type IntroStage = {
+    id: 'te' | 'old' | 'new';
+    title: string;
+    subtitle: string;
+    description: string;
+    exampleLabel: string;
+    exampleValue: string;
 };
 
 const API_ROOT = '/api/dm/replace';
 
+const INTRO_STAGES: IntroStage[] = [
+    {
+        id: 'te',
+        title: 'Сканирование ТЕ',
+        subtitle: 'Шаг 1 из 3',
+        description: 'Сканируйте TE. После загрузки строк переход к этапу старого DM выполнится автоматически',
+        exampleLabel: 'Пример ТЕ',
+        exampleValue: '4421682',
+    },
+    {
+        id: 'old',
+        title: 'Поиск по старому DM',
+        subtitle: 'Шаг 2 из 3',
+        description: 'Сканируйте старый DM. Интерфейс автоматически определит нужную запись в рамках выбранного ТЕ',
+        exampleLabel: 'Пример старого DM',
+        exampleValue: '004804202066008320102p',
+    },
+    {
+        id: 'new',
+        title: 'Замена на новый DM',
+        subtitle: 'Шаг 3 из 3',
+        description: 'Сканируйте новый DM и выполните замену',
+        exampleLabel: 'Пример нового DM',
+        exampleValue: '004804202066008320102h',
+    },
+];
+
+// noinspection NonAsciiCharacters
 const CYRILLIC_MAP: Record<string, string> = {
     А: 'A',
     В: 'B',
@@ -112,20 +149,34 @@ export function DmReplace() {
     const [rows, setRows] = useState<DmReplaceRowModel[]>([]);
     const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
     const [message, setMessage] = useState<MessageModel | null>(null);
-    const [history, setHistory] = useState<HistoryRow[]>([]);
+    const [flowStatus, setFlowStatus] = useState<FlowStatus>('idle');
+    const [activeStage, setActiveStage] = useState(0);
 
     const selectedRow = useMemo(
         () => rows.find(row => row.itemId === selectedItemId) ?? null,
         [rows, selectedItemId],
     );
+    const normalizedTeCode = normalizeTe(teCode);
+    const normalizedOldDm = normalizeDm(oldDm);
+    const normalizedNewDm = normalizeDm(newDm);
+    const maxUnlockedStage = selectedRow ? 2 : rows.length > 0 ? 1 : 0;
 
     useEffect(() => {
         teInputRef.current?.focus();
     }, []);
 
-    async function handleLoadTe(): Promise<void> {
-        const normalizedTeCode = normalizeTe(teCode);
+    useEffect(() => {
+        const timerId = window.setInterval(() => {
+            setActiveStage((current) => {
+                const next = (current + 1) % INTRO_STAGES.length;
+                return next <= maxUnlockedStage ? next : current;
+            });
+        }, 2600);
 
+        return () => window.clearInterval(timerId);
+    }, [maxUnlockedStage]);
+
+    async function handleLoadTe(): Promise<void> {
         if (normalizedTeCode.length === 0) {
             setMessage({ type: 'warning', text: 'Сначала отсканируйте или введите ТЕ' });
             return;
@@ -136,6 +187,7 @@ export function DmReplace() {
         setSelectedItemId(null);
         setOldDm('');
         setNewDm('');
+        setFlowStatus('idle');
 
         try {
             const response = await fetch(`${API_ROOT}?teCode=${encodeURIComponent(normalizedTeCode)}`);
@@ -148,10 +200,8 @@ export function DmReplace() {
             setRows(payload);
 
             if (payload.length === 0) {
-                setMessage({
-                    type: 'warning',
-                    text: `Для ТЕ ${normalizedTeCode} записи не найдены`,
-                });
+                setMessage({ type: 'warning', text: `Для ТЕ ${normalizedTeCode} записи не найдены` });
+                setFlowStatus('error');
                 return;
             }
 
@@ -159,13 +209,15 @@ export function DmReplace() {
                 type: 'success',
                 text: `ТЕ ${normalizedTeCode}: найдено строк ${payload.length}. Сканируйте старый DM`,
             });
-
+            setFlowStatus('te-loaded');
+            setActiveStage(1);
             window.setTimeout(() => oldDmInputRef.current?.focus(), 0);
         }
         catch (error) {
             const details = error instanceof Error ? error.message : 'Ошибка загрузки данных ТЕ';
             setRows([]);
             setMessage({ type: 'error', text: details });
+            setFlowStatus('error');
         }
         finally {
             setIsLoadingRows(false);
@@ -173,8 +225,6 @@ export function DmReplace() {
     }
 
     function handleOldDmSubmit(): void {
-        const normalizedOldDm = normalizeDm(oldDm);
-
         if (rows.length === 0) {
             setMessage({ type: 'warning', text: 'Сначала загрузите ТЕ' });
             return;
@@ -189,26 +239,19 @@ export function DmReplace() {
 
         if (!foundRow) {
             setSelectedItemId(null);
-            setMessage({
-                type: 'error',
-                text: 'Запись со старым DM не найдена в выбранном ТЕ',
-            });
+            setMessage({ type: 'error', text: 'Запись со старым DM не найдена в выбранном ТЕ' });
+            setFlowStatus('row-not-found');
             return;
         }
 
         setSelectedItemId(foundRow.itemId);
-        setMessage({
-            type: 'success',
-            text: `Запись найдена (ItemId ${foundRow.itemId}). Сканируйте новый DM`,
-        });
+        setMessage({ type: 'success', text: `Запись найдена (ItemId ${foundRow.itemId}). Сканируйте новый DM` });
+        setFlowStatus('row-found');
+        setActiveStage(2);
         window.setTimeout(() => newDmInputRef.current?.focus(), 0);
     }
 
     async function handleReplace(): Promise<void> {
-        const normalizedTeCode = normalizeTe(teCode);
-        const normalizedOldDm = normalizeDm(oldDm);
-        const normalizedNewDm = normalizeDm(newDm);
-
         if (rows.length === 0) {
             setMessage({ type: 'warning', text: 'Сначала загрузите ТЕ' });
             return;
@@ -227,11 +270,13 @@ export function DmReplace() {
 
         if (normalizedNewDm === normalizedOldDm) {
             setMessage({ type: 'warning', text: 'Новый DM совпадает со старым' });
+            setFlowStatus('same-dm');
             return;
         }
 
         if (rows.some(row => row.itemId !== selectedRow.itemId && normalizeDm(row.barcode) === normalizedNewDm)) {
             setMessage({ type: 'error', text: 'Новый DM уже существует' });
+            setFlowStatus('new-dm-exists');
             return;
         }
 
@@ -241,9 +286,7 @@ export function DmReplace() {
         try {
             const response = await fetch(`${API_ROOT}/${selectedRow.itemId}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     teCode: normalizedTeCode,
                     newDm: normalizedNewDm,
@@ -260,34 +303,22 @@ export function DmReplace() {
 
             setRows(previousRows =>
                 previousRows.map(row =>
-                    row.itemId === selectedRow.itemId
-                        ? {
-                            ...row,
-                            barcode: apiNewDm,
-                        }
-                        : row,
+                    row.itemId === selectedRow.itemId ? { ...row, barcode: apiNewDm } : row,
                 ),
             );
 
-            const historyRow: HistoryRow = {
-                id: `${Date.now()}-${selectedRow.itemId}`,
-                teCode: normalizedTeCode,
-                itemId: selectedRow.itemId,
-                oldDm: apiOldDm,
-                newDm: apiNewDm,
-                changedAt: new Date().toLocaleTimeString('ru-RU'),
-            };
-
-            setHistory(previous => [historyRow, ...previous].slice(0, 20));
             setOldDm('');
             setNewDm('');
             setSelectedItemId(null);
-            setMessage({ type: 'success', text: 'Замена выполнена. Можно сканировать следующий старый DM' });
+            setMessage({ type: 'success', text: `Замена выполнена: ${apiOldDm} -> ${apiNewDm}` });
+            setFlowStatus('replace-success');
+            setActiveStage(1);
             window.setTimeout(() => oldDmInputRef.current?.focus(), 0);
         }
         catch (error) {
             const details = error instanceof Error ? error.message : 'Ошибка при замене DM';
             setMessage({ type: 'error', text: details });
+            setFlowStatus('error');
         }
         finally {
             setIsReplacing(false);
@@ -296,216 +327,231 @@ export function DmReplace() {
 
     return (
         <AppLayout>
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <Header
                     title="Замена DM-кодов"
-                    description="Scanner-first экран для быстрой замены DM внутри выбранной транспортной единицы."
+                    description=""
                 />
 
-                <div className="space-y-6">
-                    <div className="card-brand p-6 lg:p-8">
-                        <div className="flex flex-col gap-6">
-                            <div className="flex items-center gap-2">
-                                <ScanLine size={20} className="text-brand-primary" />
-                                <h3 className="text-lg font-bold">Быстрая замена</h3>
+                <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-sm min-h-[74vh] animate-in fade-in slide-in-from-bottom-3 duration-500">
+                    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(140deg,rgba(15,23,42,0.03),transparent_45%,rgba(37,99,235,0.06))]" />
+                    <div className="relative z-10 flex h-full flex-col justify-between gap-6">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <h3 className="text-xl font-semibold tracking-tight">Операционный сценарий замены</h3>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    Левая часть — рабочая зона, справа — этапы с контролем последовательности.
+                                </p>
                             </div>
-
-                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                                <div className="lg:col-span-4 space-y-2">
-                                    <label className="block text-xs font-bold text-brand-text-dim uppercase tracking-wide">
-                                        1) Транспортная единица (ТЕ)
-                                    </label>
-                                    <input
-                                        ref={teInputRef}
-                                        type="text"
-                                        className="input-field h-12 text-base font-mono"
-                                        placeholder="Сканируйте или введите ТЕ"
-                                        value={teCode}
-                                        onChange={(event) => setTeCode(event.target.value)}
-                                        onKeyDown={(event) => {
-                                            if (event.key === 'Enter') {
-                                                event.preventDefault();
-                                                void handleLoadTe();
-                                            }
-                                        }}
-                                    />
-                                    <button
-                                        type="button"
-                                        className="btn-primary w-full h-11"
-                                        onClick={() => void handleLoadTe()}
-                                        disabled={isLoadingRows}
-                                    >
-                                        {isLoadingRows ? <LoaderCircle size={18} className="animate-spin" /> : <RefreshCcw size={18} />}
-                                        {isLoadingRows ? 'Загрузка...' : 'Загрузить строки ТЕ'}
-                                    </button>
-                                </div>
-
-                                <div className="lg:col-span-4 space-y-2">
-                                    <label className="block text-xs font-bold text-brand-text-dim uppercase tracking-wide">
-                                        2) Старый DM
-                                    </label>
-                                    <input
-                                        ref={oldDmInputRef}
-                                        type="text"
-                                        className="input-field h-12 text-base font-mono"
-                                        placeholder="Сканируйте старый DM"
-                                        value={oldDm}
-                                        disabled={rows.length === 0}
-                                        onChange={(event) => setOldDm(event.target.value)}
-                                        onKeyDown={(event) => {
-                                            if (event.key === 'Enter') {
-                                                event.preventDefault();
-                                                handleOldDmSubmit();
-                                            }
-                                        }}
-                                    />
-                                    <button
-                                        type="button"
-                                        className="btn-secondary w-full h-11"
-                                        onClick={handleOldDmSubmit}
-                                        disabled={rows.length === 0}
-                                    >
-                                        <Search size={16} />
-                                        Найти запись
-                                    </button>
-                                </div>
-
-                                <div className="lg:col-span-4 space-y-2">
-                                    <label className="block text-xs font-bold text-brand-text-dim uppercase tracking-wide">
-                                        3) Новый DM
-                                    </label>
-                                    <input
-                                        ref={newDmInputRef}
-                                        type="text"
-                                        className="input-field h-12 text-base font-mono"
-                                        placeholder="Сканируйте новый DM"
-                                        value={newDm}
-                                        disabled={!selectedRow}
-                                        onChange={(event) => setNewDm(event.target.value)}
-                                        onKeyDown={(event) => {
-                                            if (event.key === 'Enter') {
-                                                event.preventDefault();
-                                                void handleReplace();
-                                            }
-                                        }}
-                                    />
-                                    <button
-                                        type="button"
-                                        className="btn-primary w-full h-11"
-                                        onClick={() => void handleReplace()}
-                                        disabled={!selectedRow || isReplacing}
-                                    >
-                                        {isReplacing ? <LoaderCircle size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
-                                        {isReplacing ? 'Выполняется...' : 'Выполнить замену'}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div className="card-brand p-3 bg-brand-surface-light/40">
-                                    <p className="text-[10px] text-brand-text-dim uppercase font-bold mb-1">Текущий ТЕ</p>
-                                    <p className="font-mono text-sm font-bold">{normalizeTe(teCode) || '-'}</p>
-                                </div>
-                                <div className="card-brand p-3 bg-brand-surface-light/40">
-                                    <p className="text-[10px] text-brand-text-dim uppercase font-bold mb-1">Строк в ТЕ</p>
-                                    <p className="font-mono text-sm font-bold">{rows.length}</p>
-                                </div>
-                                <div className="card-brand p-3 bg-brand-surface-light/40">
-                                    <p className="text-[10px] text-brand-text-dim uppercase font-bold mb-1">Найденная запись</p>
-                                    <p className="font-mono text-sm font-bold">{selectedRow ? `ItemId ${selectedRow.itemId}` : '-'}</p>
-                                </div>
-                            </div>
+                            <span className="rounded-full border border-border bg-muted/25 px-2.5 py-1 text-[11px] text-muted-foreground">
+                                Interactive flow
+                            </span>
                         </div>
-                    </div>
 
-                    {message && (
-                        <div
-                            className={`p-4 rounded-brand border flex gap-3 animate-in zoom-in-95 duration-300 ${
-                                message.type === 'success'
-                                    ? 'bg-brand-success/10 border-brand-success/30 text-brand-success'
-                                    : message.type === 'error'
-                                        ? 'bg-brand-error/10 border-brand-error/30 text-brand-error'
-                                        : 'bg-brand-warning/10 border-brand-warning/30 text-brand-warning'
-                            }`}
-                        >
-                            {message.type === 'success' && <CheckCircle2 size={20} className="shrink-0" />}
-                            {message.type === 'error' && <XCircle size={20} className="shrink-0" />}
-                            {message.type === 'warning' && <AlertCircle size={20} className="shrink-0" />}
-                            <p className="text-sm font-medium">{message.text}</p>
-                        </div>
-                    )}
+                        <div className="grid gap-4 lg:grid-cols-[1.65fr_1fr]">
+                            <div className="rounded-2xl border border-border bg-background/85 p-5 shadow-sm">
+                                <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                                    {INTRO_STAGES[activeStage].subtitle}
+                                </p>
+                                <h4 className="mt-2 text-3xl font-semibold tracking-tight">{INTRO_STAGES[activeStage].title}</h4>
+                                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{INTRO_STAGES[activeStage].description}</p>
 
-                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                        <div className="xl:col-span-8 space-y-3">
-                            <h4 className="text-sm font-bold uppercase tracking-wide text-brand-text-dim">
-                                Содержимое ТЕ (fallback)
-                            </h4>
-                            {rows.length > 0 ? (
-                                <div className="table-container">
-                                    <table className="table-brand">
-                                        <thead>
-                                        <tr>
-                                            <th>ItemId</th>
-                                            <th>DM</th>
-                                            <th>Партия</th>
-                                            <th>Маршрут</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        {rows.map((row) => (
-                                            <tr
-                                                key={row.itemId}
-                                                className={row.itemId === selectedItemId ? 'bg-brand-primary/5' : undefined}
+                                <div className="mt-4 rounded-xl border border-border bg-card px-3 py-3">
+                                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                        {INTRO_STAGES[activeStage].exampleLabel}
+                                    </p>
+                                    <p className="mt-1 break-all font-mono text-sm font-semibold">
+                                        {INTRO_STAGES[activeStage].exampleValue}
+                                    </p>
+                                </div>
+
+                                <div className="mt-5">
+                                    {activeStage === 0 && (
+                                        <>
+                                            <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                                                Транспортная единица
+                                            </label>
+                                            <input
+                                                ref={teInputRef}
+                                                type="text"
+                                                className="mt-2 h-14 w-full rounded-xl border border-border bg-background px-4 font-mono text-base text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                placeholder="Сканируйте или введите ТЕ"
+                                                value={teCode}
+                                                onChange={(event) => setTeCode(event.target.value)}
+                                                onKeyDown={(event) => {
+                                                    if (event.key === 'Enter') {
+                                                        event.preventDefault();
+                                                        void handleLoadTe();
+                                                    }
+                                                }}
+                                            />
+                                            <button
+                                                type="button"
+                                                className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition-all hover:bg-slate-800 disabled:opacity-50"
+                                                onClick={() => void handleLoadTe()}
+                                                disabled={isLoadingRows}
                                             >
-                                                <td className="font-mono text-xs">{row.itemId}</td>
-                                                <td className="font-mono font-semibold text-xs break-all">{row.barcode}</td>
-                                                <td className="text-xs">{row.batchName || '-'}</td>
-                                                <td className="font-mono text-xs">{row.targetCode || '-'}</td>
-                                            </tr>
-                                        ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ) : (
-                                <div className="card-brand p-8 flex flex-col items-center justify-center text-center border-dashed border-2 opacity-60">
-                                    <RefreshCcw size={36} className="text-brand-text-dim mb-3" />
-                                    <p className="text-brand-text-muted">Загрузите ТЕ, чтобы увидеть строки</p>
-                                </div>
-                            )}
-                        </div>
+                                                {isLoadingRows ? <LoaderCircle size={18} className="animate-spin" /> : <RefreshCcw size={18} />}
+                                                {isLoadingRows ? 'Загрузка...' : 'Загрузить строки ТЕ'}
+                                            </button>
+                                        </>
+                                    )}
 
-                        <div className="xl:col-span-4 space-y-3">
-                            <h4 className="text-sm font-bold uppercase tracking-wide text-brand-text-dim">
-                                Последние замены (сессия)
-                            </h4>
-                            <div className="card-brand">
-                                {history.length > 0 ? (
-                                    <div className="max-h-[380px] overflow-auto divide-y divide-brand-border">
-                                        {history.map((entry) => (
-                                            <div key={entry.id} className="p-3 text-xs">
-                                                <div className="flex items-center justify-between gap-2 mb-2">
-                                                    <span className="badge badge-success">Успех</span>
-                                                    <span className="text-brand-text-dim flex items-center gap-1">
-                                                        <Clock3 size={12} />
-                                                        {entry.changedAt}
-                                                    </span>
-                                                </div>
-                                                <p className="font-mono">TE: {entry.teCode}</p>
-                                                <p className="font-mono">ItemId: {entry.itemId}</p>
-                                                <p className="font-mono break-all">Старый: {entry.oldDm}</p>
-                                                <p className="font-mono break-all">Новый: {entry.newDm}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="p-6 text-sm text-brand-text-muted">
-                                        В этой сессии замен пока нет.
+                                    {activeStage === 1 && (
+                                        <>
+                                            <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                                                Старый DM
+                                            </label>
+                                            <input
+                                                ref={oldDmInputRef}
+                                                type="text"
+                                                className="mt-2 h-14 w-full rounded-xl border border-border bg-background px-4 font-mono text-base text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+                                                placeholder="Сканируйте старый DM"
+                                                value={oldDm}
+                                                disabled={rows.length === 0}
+                                                onChange={(event) => setOldDm(event.target.value)}
+                                                onKeyDown={(event) => {
+                                                    if (event.key === 'Enter') {
+                                                        event.preventDefault();
+                                                        handleOldDmSubmit();
+                                                    }
+                                                }}
+                                            />
+                                            <button
+                                                type="button"
+                                                className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-sm font-medium text-foreground transition-all hover:bg-muted/50 disabled:opacity-50"
+                                                onClick={handleOldDmSubmit}
+                                                disabled={rows.length === 0}
+                                            >
+                                                <Search size={16} />
+                                                Найти запись
+                                            </button>
+                                        </>
+                                    )}
+
+                                    {activeStage === 2 && (
+                                        <>
+                                            <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                                                Новый DM
+                                            </label>
+                                            <input
+                                                ref={newDmInputRef}
+                                                type="text"
+                                                className="mt-2 h-14 w-full rounded-xl border border-border bg-background px-4 font-mono text-base text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+                                                placeholder="Сканируйте новый DM"
+                                                value={newDm}
+                                                disabled={!selectedRow}
+                                                onChange={(event) => setNewDm(event.target.value)}
+                                                onKeyDown={(event) => {
+                                                    if (event.key === 'Enter') {
+                                                        event.preventDefault();
+                                                        void handleReplace();
+                                                    }
+                                                }}
+                                            />
+                                            <button
+                                                type="button"
+                                                className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-medium text-white transition-all hover:bg-blue-500 disabled:opacity-50"
+                                                onClick={() => void handleReplace()}
+                                                disabled={!selectedRow || isReplacing}
+                                            >
+                                                {isReplacing ? <LoaderCircle size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
+                                                {isReplacing ? 'Выполняется...' : 'Выполнить замену'}
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+
+                                {message && (
+                                    <div
+                                        className={`mt-4 rounded-xl border p-3 text-sm flex items-start gap-2 ${
+                                            message.type === 'success'
+                                                ? 'bg-brand-success/10 border-brand-success/30 text-brand-success'
+                                                : message.type === 'error'
+                                                    ? 'bg-brand-error/10 border-brand-error/30 text-brand-error'
+                                                    : 'bg-brand-warning/10 border-brand-warning/30 text-brand-warning'
+                                        }`}
+                                    >
+                                        {message.type === 'success' && <CheckCircle2 size={18} className="shrink-0 mt-0.5" />}
+                                        {message.type === 'error' && <XCircle size={18} className="shrink-0 mt-0.5" />}
+                                        {message.type === 'warning' && <AlertCircle size={18} className="shrink-0 mt-0.5" />}
+                                        <span>{message.text}</span>
                                     </div>
                                 )}
                             </div>
+
+                            <aside className="space-y-3 lg:pl-1">
+                                {INTRO_STAGES.map((stage, index) => (
+                                    <button
+                                        key={stage.id}
+                                        type="button"
+                                        onClick={() => {
+                                            if (index <= maxUnlockedStage) {
+                                                setActiveStage(index);
+                                            }
+                                        }}
+                                        disabled={index > maxUnlockedStage}
+                                        className={`w-full rounded-2xl border px-4 py-4 text-left transition-all ${
+                                            activeStage === index
+                                                ? 'border-blue-200 bg-blue-50/70 shadow-sm'
+                                                : index > maxUnlockedStage
+                                                    ? 'border-border bg-background/60 opacity-55 cursor-not-allowed'
+                                                    : 'border-border bg-background hover:border-slate-300 hover:bg-muted/35'
+                                        }`}
+                                    >
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div>
+                                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Этап {index + 1}</p>
+                                                <p className="mt-1 text-sm font-semibold">{stage.title}</p>
+                                            </div>
+                                            <span className={`inline-flex size-7 items-center justify-center rounded-lg border text-xs font-semibold ${
+                                                activeStage === index
+                                                    ? 'border-blue-200 bg-white text-blue-700'
+                                                    : 'border-border bg-white text-muted-foreground'
+                                            }`}>
+                                                {index + 1}
+                                            </span>
+                                        </div>
+                                    </button>
+                                ))}
+
+                                <div className="rounded-2xl border border-border bg-muted/20 p-4">
+                                    <div className="flex items-center gap-2">
+                                        <Workflow size={16} className="text-brand-primary" />
+                                        <p className="text-sm font-medium">Статус</p>
+                                    </div>
+                                    <p className="mt-2 text-xs text-muted-foreground">
+                                        Состояние: {flowStatus}
+                                    </p>
+                                    <p className="mt-2 text-xs text-muted-foreground">
+                                        Доступные этапы: {maxUnlockedStage + 1} из {INTRO_STAGES.length}
+                                    </p>
+                                    <p className="mt-2 text-xs text-muted-foreground">
+                                        {isLoadingRows
+                                            ? 'Ожидайте загрузку строк ТЕ'
+                                            : !rows.length
+                                                ? 'Сканируйте ТЕ'
+                                                : !selectedRow
+                                                    ? 'Сканируйте старый DM'
+                                                    : 'Сканируйте новый DM'}
+                                    </p>
+                                </div>
+                            </aside>
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                                <div
+                                    className="h-full rounded-full bg-[linear-gradient(90deg,#0f172a,#2563eb)] transition-all duration-500"
+                                    style={{ width: `${((activeStage + 1) / INTRO_STAGES.length) * 100}%` }}
+                                />
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Переход вперед доступен только после завершения предыдущего этапа. Возврат назад разрешен всегда.
+                            </p>
                         </div>
                     </div>
-                </div>
+                </section>
             </div>
         </AppLayout>
     );
