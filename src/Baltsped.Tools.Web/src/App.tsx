@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import { DmReplace } from './pages/DmReplace';
 import { Home } from './pages/Home';
 import { NotFound } from './pages/NotFound';

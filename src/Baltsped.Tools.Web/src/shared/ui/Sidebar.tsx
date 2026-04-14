@@ -9,11 +9,10 @@ import {
     Sun,
     Moon,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import type { Page, Theme } from '../types/app';
+import { NavLink } from 'react-router-dom';
+import type { Theme } from '../types/app';
 
 type SidebarProps = {
-    activePage: Page;
     theme: Theme;
     toggleTheme: () => void;
     isOpen: boolean;
@@ -21,20 +20,32 @@ type SidebarProps = {
 };
 
 type NavItem = {
-    id: Page;
     label: string;
     href: string;
     icon: typeof LayoutGrid;
+    end?: boolean;
 };
 
 const navItems: NavItem[] = [
-    { id: 'catalog', label: 'Инструменты', href: '/', icon: LayoutGrid },
-    { id: 'te-viewer', label: 'Содержимое ТЕ', href: '/te/lookup', icon: Search },
-    { id: 'dm-replacement', label: 'Замена DM-кодов', href: '/dm/replace', icon: RefreshCcw },
+    {
+        label: 'Инструменты',
+        href: '/',
+        icon: LayoutGrid,
+        end: true,
+    },
+    {
+        label: 'Содержимое ТЕ',
+        href: '/te/lookup',
+        icon: Search,
+    },
+    {
+        label: 'Замена DM-кодов',
+        href: '/dm/replace',
+        icon: RefreshCcw,
+    },
 ];
 
 export function Sidebar({
-                            activePage,
                             theme,
                             toggleTheme,
                             isOpen,
@@ -66,25 +77,32 @@ export function Sidebar({
                     const Icon = item.icon;
 
                     return (
-                        <Link
-                            key={item.id}
+                        <NavLink
+                            key={item.href}
                             to={item.href}
-                            className={`w-full flex items-center gap-3 px-3 py-3 rounded-brand group ${
-                                activePage === item.id
-                                    ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20'
-                                    : 'text-brand-text-muted hover:bg-brand-surface-light hover:text-brand-text'
-                            } ${isOpen ? 'justify-start px-4' : 'justify-center'}`}
+                            end={item.end}
+                            className={({ isActive }) =>
+                                `w-full flex items-center gap-3 px-3 py-3 rounded-brand group ${
+                                    isActive
+                                        ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20'
+                                        : 'text-brand-text-muted hover:bg-brand-surface-light hover:text-brand-text'
+                                } ${isOpen ? 'justify-start px-4' : 'justify-center'}`
+                            }
                         >
-                            <Icon
-                                size={20}
-                                className={
-                                    activePage === item.id
-                                        ? 'text-white'
-                                        : 'text-brand-text-dim group-hover:text-brand-text'
-                                }
-                            />
-                            {isOpen && <span className="font-medium text-sm">{item.label}</span>}
-                        </Link>
+                            {({ isActive }) => (
+                                <>
+                                    <Icon
+                                        size={20}
+                                        className={
+                                            isActive
+                                                ? 'text-white'
+                                                : 'text-brand-text-dim group-hover:text-brand-text'
+                                        }
+                                    />
+                                    {isOpen && <span className="font-medium text-sm">{item.label}</span>}
+                                </>
+                            )}
+                        </NavLink>
                     );
                 })}
             </nav>

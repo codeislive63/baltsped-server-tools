@@ -5,7 +5,7 @@ import { Header } from '../shared/ui/Header';
 
 export function Home() {
     return (
-        <AppLayout activePage="catalog">
+        <AppLayout>
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <Header
                     title="Каталог инструментов"

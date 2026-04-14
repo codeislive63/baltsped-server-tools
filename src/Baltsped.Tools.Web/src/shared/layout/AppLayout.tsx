@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react';
 import type { PropsWithChildren } from 'react';
 import { Sidebar } from '../ui/Sidebar';
-import type { Page, Theme } from '../types/app';
+import type { Theme } from '../types/app';
 
-type AppLayoutProps = PropsWithChildren<{
-    activePage: Page;
-}>;
+type AppLayoutProps = PropsWithChildren;
 
 const themeStorageKey = 'baltsped-tools-theme';
 const sidebarStorageKey = 'baltsped-tools-sidebar-open';
 
-export function AppLayout({ activePage, children }: AppLayoutProps) {
+export function AppLayout({ children }: AppLayoutProps) {
     const [theme, setTheme] = useState<Theme>(() => {
         if (typeof window === 'undefined') {
             return 'dark';
@@ -32,7 +30,8 @@ export function AppLayout({ activePage, children }: AppLayoutProps) {
     useEffect(() => {
         if (theme === 'light') {
             document.documentElement.classList.add('light');
-        } else {
+        }
+        else {
             document.documentElement.classList.remove('light');
         }
 
@@ -54,7 +53,6 @@ export function AppLayout({ activePage, children }: AppLayoutProps) {
     return (
         <div className="flex min-h-screen bg-brand-bg text-brand-text">
             <Sidebar
-                activePage={activePage}
                 theme={theme}
                 toggleTheme={toggleTheme}
                 isOpen={isSidebarOpen}
