@@ -1,20 +1,15 @@
 import {
-    LayoutGrid,
+    Boxes,
+    ClipboardList,
     Search,
+    ScanSearch,
     RefreshCcw,
-    Package,
-    LogOut,
     Menu,
     X,
-    Sun,
-    Moon,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
-import type { Theme } from '../types/app';
 
 type SidebarProps = {
-    theme: Theme;
-    toggleTheme: () => void;
     isOpen: boolean;
     toggleOpen: () => void;
 };
@@ -22,7 +17,7 @@ type SidebarProps = {
 type NavItem = {
     label: string;
     href: string;
-    icon: typeof LayoutGrid;
+    icon: typeof Boxes;
     end?: boolean;
 };
 
@@ -30,49 +25,73 @@ const navItems: NavItem[] = [
     {
         label: 'Инструменты',
         href: '/',
-        icon: LayoutGrid,
+        icon: Boxes,
         end: true,
     },
     {
-        label: 'Содержимое ТЕ',
+        label: 'Проверка ТЕ',
         href: '/te/lookup',
-        icon: Search,
+        icon: ScanSearch,
     },
     {
-        label: 'Замена DM-кодов',
+        label: 'ДМ коды',
         href: '/dm/replace',
         icon: RefreshCcw,
     },
 ];
 
 export function Sidebar({
-                            theme,
-                            toggleTheme,
                             isOpen,
                             toggleOpen,
                         }: SidebarProps) {
     return (
-        <aside className={`${isOpen ? 'w-64' : 'w-20'} bg-brand-surface border-r border-brand-border flex flex-col h-screen sticky top-0`}>
-            <div className={`p-6 flex items-center ${isOpen ? 'justify-between' : 'justify-center'}`}>
+        <aside className={`${isOpen ? 'w-72' : 'w-22'} flex h-screen sticky top-0 flex-col border-r border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85`}>
+            <div className={`flex items-center border-b border-border px-4 py-4 ${isOpen ? 'justify-between' : 'justify-center'}`}>
                 {isOpen && (
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-brand-primary rounded-brand flex items-center justify-center">
-                            <Package className="text-white w-5 h-5" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-blue-200 bg-gradient-to-br from-slate-900 to-slate-700 shadow-sm">
+                            <div className="grid grid-cols-2 gap-1">
+                                <span className="size-1.5 rounded-[2px] bg-white/90" />
+                                <span className="size-1.5 rounded-[2px] bg-blue-200" />
+                                <span className="size-1.5 rounded-[2px] bg-blue-200" />
+                                <span className="size-1.5 rounded-[2px] bg-white/90" />
+                            </div>
                         </div>
-                        <span className="font-bold text-lg tracking-tight uppercase">Baltsped</span>
+                        <div>
+                            <p className="text-sm font-semibold tracking-tight text-foreground">Baltsped Tools</p>
+                            <p className="text-xs text-muted-foreground">Warehouse Operations</p>
+                        </div>
                     </div>
                 )}
 
                 <button
                     type="button"
                     onClick={toggleOpen}
-                    className="p-1 hover:bg-brand-surface-light rounded-brand text-brand-text-muted"
+                    className="inline-flex size-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    aria-label={isOpen ? 'Свернуть боковую панель' : 'Развернуть боковую панель'}
                 >
                     {isOpen ? <X size={20} /> : <Menu size={20} />}
                 </button>
             </div>
 
-            <nav className="flex-1 px-3 space-y-1 mt-4">
+            <div className="px-4 pt-5">
+                {isOpen ? (
+                    <div className="rounded-2xl border border-border bg-muted/30 px-3 py-3">
+                        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                            Рабочее пространство
+                        </p>
+                        <p className="mt-1 text-sm font-medium text-foreground">
+                            Каталог инструментов и операционные сценарии
+                        </p>
+                    </div>
+                ) : (
+                    <div className="mx-auto flex size-10 items-center justify-center rounded-2xl border border-border bg-muted/30">
+                        <Search size={16} className="text-muted-foreground" />
+                    </div>
+                )}
+            </div>
+
+            <nav className="flex-1 space-y-1 px-3 py-5">
                 {navItems.map((item) => {
                     const Icon = item.icon;
 
@@ -82,10 +101,10 @@ export function Sidebar({
                             to={item.href}
                             end={item.end}
                             className={({ isActive }) =>
-                                `w-full flex items-center gap-3 px-3 py-3 rounded-brand group ${
+                                `group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-sm transition-all ${
                                     isActive
-                                        ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20'
-                                        : 'text-brand-text-muted hover:bg-brand-surface-light hover:text-brand-text'
+                                        ? 'bg-slate-900 text-white shadow-sm'
+                                        : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
                                 } ${isOpen ? 'justify-start px-4' : 'justify-center'}`
                             }
                         >
@@ -96,7 +115,7 @@ export function Sidebar({
                                         className={
                                             isActive
                                                 ? 'text-white'
-                                                : 'text-brand-text-dim group-hover:text-brand-text'
+                                                : 'text-slate-400 group-hover:text-foreground'
                                         }
                                     />
                                     {isOpen && <span className="font-medium text-sm">{item.label}</span>}
@@ -107,35 +126,18 @@ export function Sidebar({
                 })}
             </nav>
 
-            <div className="p-4 border-t border-brand-border space-y-4">
-                <button
-                    type="button"
-                    onClick={toggleTheme}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-brand hover:bg-brand-surface-light text-brand-text-muted hover:text-brand-text ${
-                        isOpen ? 'justify-start px-4' : 'justify-center'
-                    }`}
-                >
-                    {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-                    {isOpen && (
-                        <span className="font-medium text-sm">
-                            {theme === 'dark' ? 'Светлая тема' : 'Темная тема'}
-                        </span>
-                    )}
-                </button>
-
-                <div className={`flex items-center gap-3 ${isOpen ? 'px-4' : 'justify-center'}`}>
-                    <div className="w-8 h-8 rounded-full bg-brand-surface-light border border-brand-border flex items-center justify-center text-xs font-bold text-brand-accent">
-                        JD
+            <div className="border-t border-border p-4">
+                <div className={`flex items-center gap-3 rounded-2xl border border-border bg-background px-3 py-3 ${isOpen ? '' : 'justify-center px-0'}`}>
+                    <div className="flex size-9 items-center justify-center rounded-xl bg-muted text-slate-700">
+                        <ClipboardList size={18} />
                     </div>
-
                     {isOpen && (
-                        <>
-                            <div className="flex-1 overflow-hidden">
-                                <p className="text-xs font-semibold truncate">John Doe</p>
-                                <p className="text-[10px] text-brand-text-dim truncate">Logistics Manager</p>
-                            </div>
-                            <LogOut size={14} className="text-brand-text-dim hover:text-brand-error cursor-pointer" />
-                        </>
+                        <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-foreground">Светлая тема активна</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                                Базовая навигация и рабочие модули
+                            </p>
+                        </div>
                     )}
                 </div>
             </div>

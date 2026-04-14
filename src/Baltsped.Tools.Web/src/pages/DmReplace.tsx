@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import {
     AlertCircle,
     ArrowRightLeft,
@@ -68,7 +68,7 @@ export function DmReplace() {
     }
 
     return (
-        <AppLayout activePage="dm-replacement">
+        <AppLayout>
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <Header
                     title="Замена DM-кодов"

@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { CheckCircle2, Package, RefreshCcw, Search, Trash2 } from 'lucide-react';
 import { AppLayout } from '../shared/layout/AppLayout';
 import { MOCK_TE_DATA } from '../shared/mock/teData';
@@ -35,7 +35,7 @@ export function TeLookup() {
     }
 
     return (
-        <AppLayout activePage="te-viewer">
+        <AppLayout>
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <Header
                     title="Просмотр содержимого ТЕ"

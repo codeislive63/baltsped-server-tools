@@ -1,10 +1,10 @@
-﻿import { AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { AppLayout } from '../shared/layout/AppLayout';
 import { Header } from '../shared/ui/Header';
 
 export function NotFound() {
     return (
-        <AppLayout activePage="not-found">
+        <AppLayout>
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <Header
                     title="Страница не найдена"

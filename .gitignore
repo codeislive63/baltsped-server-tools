@@ -363,3 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 /src/Baltsped.Tools.Server/appsettings.json
 /src/Baltsped.Tools.Server/appsettings.json
+
+# Cursor – a cross-platform .NET REPL
+.cursor/

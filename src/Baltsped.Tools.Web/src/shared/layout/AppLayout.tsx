@@ -1,23 +1,12 @@
 import { useEffect, useState } from 'react';
 import type { PropsWithChildren } from 'react';
 import { Sidebar } from '../ui/Sidebar';
-import type { Theme } from '../types/app';
 
 type AppLayoutProps = PropsWithChildren;
 
-const themeStorageKey = 'baltsped-tools-theme';
 const sidebarStorageKey = 'baltsped-tools-sidebar-open';
 
 export function AppLayout({ children }: AppLayoutProps) {
-    const [theme, setTheme] = useState<Theme>(() => {
-        if (typeof window === 'undefined') {
-            return 'dark';
-        }
-
-        const savedTheme = window.localStorage.getItem(themeStorageKey);
-        return savedTheme === 'light' ? 'light' : 'dark';
-    });
-
     const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
         if (typeof window === 'undefined') {
             return true;
@@ -28,23 +17,10 @@ export function AppLayout({ children }: AppLayoutProps) {
     });
 
     useEffect(() => {
-        if (theme === 'light') {
-            document.documentElement.classList.add('light');
-        }
-        else {
-            document.documentElement.classList.remove('light');
-        }
-
-        window.localStorage.setItem(themeStorageKey, theme);
-    }, [theme]);
-
-    useEffect(() => {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
         window.localStorage.setItem(sidebarStorageKey, String(isSidebarOpen));
     }, [isSidebarOpen]);
-
-    function toggleTheme(): void {
-        setTheme(currentTheme => currentTheme === 'dark' ? 'light' : 'dark');
-    }
 
     function toggleSidebar(): void {
         setIsSidebarOpen(currentValue => !currentValue);
@@ -53,8 +29,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     return (
         <div className="flex min-h-screen bg-brand-bg text-brand-text">
             <Sidebar
-                theme={theme}
-                toggleTheme={toggleTheme}
                 isOpen={isSidebarOpen}
                 toggleOpen={toggleSidebar}
             />

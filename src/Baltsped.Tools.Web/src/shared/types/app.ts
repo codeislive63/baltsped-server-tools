@@ -7,6 +7,8 @@ export interface ToolItem {
     description: string;
     available: boolean;
     category: string;
+    route?: string;
+    availabilityHint?: string;
 }
 
 export interface TeRecord {
