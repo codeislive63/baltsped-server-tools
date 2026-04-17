@@ -27,21 +27,21 @@ export function Home() {
 
     return (
         <AppLayout>
-            <div className="space-y-8 md:space-y-10">
+            <div className="space-y-6 md:space-y-8 xl:space-y-10">
                 <Header
                     title="Панель ТЕ и DM-операций"
                     description={""}
                 />
 
-                <section className="space-y-4">
+                <section className="space-y-3 md:space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                        <h3 className="text-xl font-semibold tracking-tight">Инструменты</h3>
+                        <h3 className="text-lg font-semibold tracking-tight md:text-xl">Инструменты</h3>
                         <span className="rounded-full border border-border bg-muted/30 px-3 py-1 text-xs text-muted-foreground">
                             {readyTools} из {totalTools} готовы к работе
                         </span>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 2xl:grid-cols-3">
                         {MOCK_TOOLS.map((tool) => (
                             tool.available && tool.route ? (
                                 <Link
@@ -51,7 +51,7 @@ export function Home() {
                                 >
                                     <article className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-200/70 group-focus-visible:border-slate-300 group-focus-visible:shadow-lg group-focus-visible:shadow-slate-200/70">
                                         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(160deg,transparent,transparent_58%,rgba(15,23,42,0.03))]" />
-                                        <div className="relative z-10 flex flex-1 flex-col p-5">
+                                        <div className="relative z-10 flex flex-1 flex-col p-4 md:p-5">
                                             <div className="mb-4 flex items-start justify-between gap-3">
                                                 <span className="inline-flex rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                                                     {tool.category}
@@ -61,7 +61,7 @@ export function Home() {
                                                 </span>
                                             </div>
 
-                                            <h4 className="text-lg font-semibold tracking-tight text-foreground transition-colors group-hover:text-slate-900">
+                                            <h4 className="text-base font-semibold tracking-tight text-foreground transition-colors group-hover:text-slate-900 md:text-lg">
                                                 {tool.name}
                                             </h4>
 
@@ -86,7 +86,7 @@ export function Home() {
                                     key={tool.id}
                                     className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card/80 opacity-75"
                                 >
-                                    <div className="relative z-10 flex flex-1 flex-col p-5">
+                                    <div className="relative z-10 flex flex-1 flex-col p-4 md:p-5">
                                         <div className="mb-4 flex items-start justify-between gap-3">
                                             <span className="inline-flex rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                                                 {tool.category}
@@ -96,7 +96,7 @@ export function Home() {
                                             </span>
                                         </div>
 
-                                        <h4 className="text-lg font-semibold tracking-tight text-foreground">
+                                        <h4 className="text-base font-semibold tracking-tight text-foreground md:text-lg">
                                             {tool.name}
                                         </h4>
 
@@ -116,8 +116,8 @@ export function Home() {
                     </div>
                 </section>
 
-                <section className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-                    <article className="rounded-2xl border border-border bg-card p-5 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+                <section className="grid gap-3 md:gap-4 xl:grid-cols-[1.4fr_1fr]">
+                    <article className="rounded-2xl border border-border bg-card p-4 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 md:p-5">
                         <div className="mb-4 flex items-center justify-between">
                             <div>
                                 <h3 className="text-base font-semibold">Операционная активность по дням</h3>
@@ -170,7 +170,7 @@ export function Home() {
                         </div>
                     </article>
 
-                    <article className="rounded-2xl border border-border bg-card p-5 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+                    <article className="rounded-2xl border border-border bg-card p-4 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150 md:p-5">
                         <div className="flex items-center justify-between">
                             <div>
                                 <h3 className="text-base font-semibold">Доступность сервисов</h3>
@@ -225,7 +225,7 @@ export function Home() {
                     </article>
                 </section>
 
-                <section className="grid gap-4 md:grid-cols-3">
+                <section className="grid gap-3 md:grid-cols-3 md:gap-4">
                     {[
                         {
                             title: 'Всего инструментов',
@@ -246,7 +246,7 @@ export function Home() {
                         <article
                             key={metric.title}
                             className={cn(
-                                'rounded-2xl border border-border bg-card p-5 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500',
+                                'rounded-2xl border border-border bg-card p-4 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 md:p-5',
                                 index === 1 && 'delay-100',
                                 index === 2 && 'delay-150'
                             )}
@@ -254,7 +254,7 @@ export function Home() {
                             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                 {metric.title}
                             </p>
-                            <p className="mt-2 text-3xl font-semibold tracking-tight">{metric.value}</p>
+                            <p className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">{metric.value}</p>
                             <p className="mt-1 text-sm text-muted-foreground">{metric.description}</p>
                         </article>
                     ))}

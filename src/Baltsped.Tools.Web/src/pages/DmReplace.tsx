@@ -1,13 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-    AlertCircle,
-    CheckCircle2,
-    LoaderCircle,
-    RefreshCcw,
-    Search,
-    Workflow,
-    XCircle,
-} from 'lucide-react';
 import { AppLayout } from '../shared/layout/AppLayout';
 import { Header } from '../shared/ui/Header';
 
@@ -44,13 +35,29 @@ type DmReplaceUpdateResultModel = {
 };
 
 type IntroStage = {
-    id: 'te' | 'old' | 'new';
+    id: 'te' | 'old' | 'replace';
     title: string;
     subtitle: string;
     description: string;
-    exampleLabel: string;
-    exampleValue: string;
 };
+
+type PendingReplaceModel = {
+    itemId: number;
+    teCode: string;
+    oldDm: string;
+    newDm: string;
+};
+
+type HistoryItem = {
+    id: string;
+    teCode: string;
+    oldDm: string;
+    newDm: string;
+    createdAt: string;
+    status: 'success';
+};
+
+type StageVisualState = 'active' | 'done' | 'available' | 'locked';
 
 const API_ROOT = '/api/dm/replace';
 
@@ -59,26 +66,26 @@ const INTRO_STAGES: IntroStage[] = [
         id: 'te',
         title: 'Сканирование ТЕ',
         subtitle: 'Шаг 1 из 3',
-        description: 'Сканируйте TE. После загрузки строк переход к этапу старого DM выполнится автоматически',
-        exampleLabel: 'Пример ТЕ',
-        exampleValue: '4421682',
+        description: 'Сканируйте ТЕ. Переход к следующему этапу выполнится автоматически',
     },
     {
         id: 'old',
         title: 'Поиск по старому DM',
         subtitle: 'Шаг 2 из 3',
-        description: 'Сканируйте старый DM. Интерфейс автоматически определит нужную запись в рамках выбранного ТЕ',
-        exampleLabel: 'Пример старого DM',
-        exampleValue: '004804202066008320102p',
+        description: 'Сканируйте старый DM. Нужная запись определится автоматически',
     },
     {
-        id: 'new',
-        title: 'Замена на новый DM',
+        id: 'replace',
+        title: 'Замена DM-кода',
         subtitle: 'Шаг 3 из 3',
-        description: 'Сканируйте новый DM и выполните замену',
-        exampleLabel: 'Пример нового DM',
-        exampleValue: '004804202066008320102h',
+        description: 'Сканируйте новый DM, проверьте данные и выполните замену',
     },
+];
+
+const MOCK_HISTORY: HistoryItem[] = [
+    { id: 'h1', teCode: '4421682', oldDm: '004804202066008320102p', newDm: '004804202066008320102h', createdAt: '12:41', status: 'success' },
+    { id: 'h2', teCode: '4421658', oldDm: '004804132140008320100f', newDm: '004804132140008320100K', createdAt: '12:37', status: 'success' },
+    { id: 'h3', teCode: '4419031', oldDm: '004804112233008320145a', newDm: '004804112233008320145b', createdAt: '12:29', status: 'success' },
 ];
 
 // noinspection NonAsciiCharacters
@@ -136,6 +143,62 @@ async function readErrorMessage(response: Response): Promise<string> {
     return 'Не удалось выполнить операцию';
 }
 
+function getMessageClasses(type: MessageModel['type']): string {
+    switch (type) {
+        case 'success':
+            return 'border-brand-success/25 bg-brand-success/8 text-brand-success';
+        case 'error':
+            return 'border-brand-error/25 bg-brand-error/8 text-brand-error';
+        default:
+            return 'border-brand-warning/25 bg-brand-warning/8 text-brand-warning';
+    }
+}
+
+function getStageVisualState(index: number, activeStage: number, maxUnlockedStage: number): StageVisualState {
+    if (index === activeStage) {
+        return 'active';
+    }
+
+    if (index < activeStage) {
+        return 'done';
+    }
+
+    if (index <= maxUnlockedStage) {
+        return 'available';
+    }
+
+    return 'locked';
+}
+
+function getStageStatusLabel(state: StageVisualState): string {
+    switch (state) {
+        case 'active':
+            return 'Текущий';
+        case 'done':
+            return 'Пройден';
+        case 'available':
+            return 'Доступен';
+        default:
+            return 'Ожидает';
+    }
+}
+
+function getSummaryCardClasses(kind: 'neutral' | 'old' | 'new', hasValue: boolean): string {
+    if (!hasValue) {
+        return 'border-border bg-background/80';
+    }
+
+    if (kind === 'old') {
+        return 'border-red-200 bg-red-50/70';
+    }
+
+    if (kind === 'new') {
+        return 'border-emerald-200 bg-emerald-50/70';
+    }
+
+    return 'border-slate-200 bg-slate-50/70';
+}
+
 export function DmReplace() {
     const teInputRef = useRef<HTMLInputElement | null>(null);
     const oldDmInputRef = useRef<HTMLInputElement | null>(null);
@@ -149,32 +212,52 @@ export function DmReplace() {
     const [rows, setRows] = useState<DmReplaceRowModel[]>([]);
     const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
     const [message, setMessage] = useState<MessageModel | null>(null);
-    const [flowStatus, setFlowStatus] = useState<FlowStatus>('idle');
+    const [, setFlowStatus] = useState<FlowStatus>('idle');
     const [activeStage, setActiveStage] = useState(0);
+    const [pendingReplace, setPendingReplace] = useState<PendingReplaceModel | null>(null);
+    const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
+    const [history, setHistory] = useState<HistoryItem[]>(MOCK_HISTORY);
 
     const selectedRow = useMemo(
         () => rows.find(row => row.itemId === selectedItemId) ?? null,
         [rows, selectedItemId],
     );
+
     const normalizedTeCode = normalizeTe(teCode);
     const normalizedOldDm = normalizeDm(oldDm);
     const normalizedNewDm = normalizeDm(newDm);
+    const currentStage = INTRO_STAGES[activeStage];
     const maxUnlockedStage = selectedRow ? 2 : rows.length > 0 ? 1 : 0;
+    const progressPercent = ((activeStage + 1) / INTRO_STAGES.length) * 100;
 
     useEffect(() => {
-        teInputRef.current?.focus();
-    }, []);
+        if (activeStage > maxUnlockedStage) {
+            setActiveStage(maxUnlockedStage);
+        }
+    }, [activeStage, maxUnlockedStage]);
 
     useEffect(() => {
-        const timerId = window.setInterval(() => {
-            setActiveStage((current) => {
-                const next = (current + 1) % INTRO_STAGES.length;
-                return next <= maxUnlockedStage ? next : current;
-            });
-        }, 2600);
+        const timeoutId = window.setTimeout(() => {
+            if (activeStage === 0) {
+                teInputRef.current?.focus();
+                teInputRef.current?.select();
+                return;
+            }
 
-        return () => window.clearInterval(timerId);
-    }, [maxUnlockedStage]);
+            if (activeStage === 1 && rows.length > 0) {
+                oldDmInputRef.current?.focus();
+                oldDmInputRef.current?.select();
+                return;
+            }
+
+            if (activeStage === 2 && selectedRow) {
+                newDmInputRef.current?.focus();
+                newDmInputRef.current?.select();
+            }
+        }, 0);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [activeStage, rows.length, selectedRow]);
 
     async function handleLoadTe(): Promise<void> {
         if (normalizedTeCode.length === 0) {
@@ -187,7 +270,9 @@ export function DmReplace() {
         setSelectedItemId(null);
         setOldDm('');
         setNewDm('');
+        setPendingReplace(null);
         setFlowStatus('idle');
+        setActiveStage(0);
 
         try {
             const response = await fetch(`${API_ROOT}?teCode=${encodeURIComponent(normalizedTeCode)}`);
@@ -211,13 +296,13 @@ export function DmReplace() {
             });
             setFlowStatus('te-loaded');
             setActiveStage(1);
-            window.setTimeout(() => oldDmInputRef.current?.focus(), 0);
         }
         catch (error) {
             const details = error instanceof Error ? error.message : 'Ошибка загрузки данных ТЕ';
             setRows([]);
             setMessage({ type: 'error', text: details });
             setFlowStatus('error');
+            setActiveStage(0);
         }
         finally {
             setIsLoadingRows(false);
@@ -227,6 +312,7 @@ export function DmReplace() {
     function handleOldDmSubmit(): void {
         if (rows.length === 0) {
             setMessage({ type: 'warning', text: 'Сначала загрузите ТЕ' });
+            setActiveStage(0);
             return;
         }
 
@@ -239,44 +325,69 @@ export function DmReplace() {
 
         if (!foundRow) {
             setSelectedItemId(null);
+            setPendingReplace(null);
+            setNewDm('');
             setMessage({ type: 'error', text: 'Запись со старым DM не найдена в выбранном ТЕ' });
             setFlowStatus('row-not-found');
+            setActiveStage(1);
             return;
         }
 
         setSelectedItemId(foundRow.itemId);
+        setPendingReplace(null);
+        setNewDm('');
         setMessage({ type: 'success', text: `Запись найдена (ItemId ${foundRow.itemId}). Сканируйте новый DM` });
         setFlowStatus('row-found');
         setActiveStage(2);
-        window.setTimeout(() => newDmInputRef.current?.focus(), 0);
     }
 
-    async function handleReplace(): Promise<void> {
+    function handlePrepareReplace(): void {
         if (rows.length === 0) {
             setMessage({ type: 'warning', text: 'Сначала загрузите ТЕ' });
+            setActiveStage(0);
             return;
         }
 
         if (!selectedRow || normalizeDm(selectedRow.barcode) !== normalizedOldDm) {
             setMessage({ type: 'warning', text: 'Сначала найдите запись по старому DM' });
-            window.setTimeout(() => oldDmInputRef.current?.focus(), 0);
+            setActiveStage(1);
             return;
         }
 
         if (normalizedNewDm.length === 0) {
             setMessage({ type: 'warning', text: 'Сканируйте новый DM код' });
+            setActiveStage(2);
             return;
         }
 
         if (normalizedNewDm === normalizedOldDm) {
             setMessage({ type: 'warning', text: 'Новый DM совпадает со старым' });
             setFlowStatus('same-dm');
+            setActiveStage(2);
             return;
         }
 
         if (rows.some(row => row.itemId !== selectedRow.itemId && normalizeDm(row.barcode) === normalizedNewDm)) {
             setMessage({ type: 'error', text: 'Новый DM уже существует' });
             setFlowStatus('new-dm-exists');
+            setActiveStage(2);
+            return;
+        }
+
+        setPendingReplace({
+            itemId: selectedRow.itemId,
+            teCode: normalizedTeCode,
+            oldDm: normalizedOldDm,
+            newDm: normalizedNewDm,
+        });
+        setMessage({ type: 'success', text: 'Новый DM проверен. Можно выполнять замену' });
+        setActiveStage(2);
+    }
+
+    async function handleConfirmReplace(): Promise<void> {
+        if (!pendingReplace) {
+            setMessage({ type: 'warning', text: 'Сначала проверьте новый DM' });
+            setActiveStage(2);
             return;
         }
 
@@ -284,12 +395,12 @@ export function DmReplace() {
         setMessage(null);
 
         try {
-            const response = await fetch(`${API_ROOT}/${selectedRow.itemId}`, {
+            const response = await fetch(`${API_ROOT}/${pendingReplace.itemId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    teCode: normalizedTeCode,
-                    newDm: normalizedNewDm,
+                    teCode: pendingReplace.teCode,
+                    newDm: pendingReplace.newDm,
                 }),
             });
 
@@ -298,27 +409,47 @@ export function DmReplace() {
             }
 
             const payload = await response.json() as DmReplaceUpdateResultModel;
-            const apiNewDm = payload.updatedItems[0]?.newDm ?? normalizedNewDm;
-            const apiOldDm = payload.updatedItems[0]?.previousDm ?? selectedRow.barcode;
+            const apiNewDm = payload.updatedItems[0]?.newDm ?? pendingReplace.newDm;
+            const apiOldDm = payload.updatedItems[0]?.previousDm ?? pendingReplace.oldDm;
 
             setRows(previousRows =>
                 previousRows.map(row =>
-                    row.itemId === selectedRow.itemId ? { ...row, barcode: apiNewDm } : row,
+                    row.itemId === pendingReplace.itemId ? { ...row, barcode: apiNewDm } : row,
                 ),
             );
 
+            setHistory(previous => [
+                {
+                    id: `${Date.now()}`,
+                    teCode: pendingReplace.teCode,
+                    oldDm: apiOldDm,
+                    newDm: apiNewDm,
+                    createdAt: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+                    status: 'success' as const,
+                },
+                ...previous,
+            ].slice(0, 10));
+
             setOldDm('');
             setNewDm('');
+            setTeCode('');
             setSelectedItemId(null);
-            setMessage({ type: 'success', text: `Замена выполнена: ${apiOldDm} -> ${apiNewDm}` });
+            setRows([]);
+            setPendingReplace(null);
+            setMessage({ type: 'success', text: `Замена выполнена: ${apiOldDm} → ${apiNewDm}` });
             setFlowStatus('replace-success');
-            setActiveStage(1);
-            window.setTimeout(() => oldDmInputRef.current?.focus(), 0);
+            setShowSuccessOverlay(true);
+
+            window.setTimeout(() => {
+                setShowSuccessOverlay(false);
+                setActiveStage(0);
+            }, 2200);
         }
         catch (error) {
             const details = error instanceof Error ? error.message : 'Ошибка при замене DM';
             setMessage({ type: 'error', text: details });
             setFlowStatus('error');
+            setActiveStage(2);
         }
         finally {
             setIsReplacing(false);
@@ -327,229 +458,329 @@ export function DmReplace() {
 
     return (
         <AppLayout>
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <Header
                     title="Замена DM-кодов"
                     description=""
                 />
 
-                <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-sm min-h-[74vh] animate-in fade-in slide-in-from-bottom-3 duration-500">
+                <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm md:p-5 lg:p-6 animate-in fade-in slide-in-from-bottom-3 duration-500">
                     <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(140deg,rgba(15,23,42,0.03),transparent_45%,rgba(37,99,235,0.06))]" />
-                    <div className="relative z-10 flex h-full flex-col justify-between gap-6">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                                <h3 className="text-xl font-semibold tracking-tight">Операционный сценарий замены</h3>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    Левая часть — рабочая зона, справа — этапы с контролем последовательности.
+
+                    {showSuccessOverlay && (
+                        <div className="absolute inset-0 z-20 grid place-items-center bg-background/80 backdrop-blur-[2px] animate-in fade-in duration-200">
+                            <div className="rounded-2xl border border-brand-success/30 bg-brand-success/10 px-6 py-5 text-center shadow-sm">
+                                <p className="text-lg font-semibold text-brand-success">Успешно</p>
+                                <p className="mt-1 text-sm text-muted-foreground">Замена выполнена. Возврат к шагу 1...</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="relative z-10 space-y-5">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                            <div className="max-w-3xl">
+                                <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                                    {currentStage.subtitle}
+                                </p>
+                                <h3 className="mt-2 text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+                                    {currentStage.title}
+                                </h3>
+                                <p className="mt-3 text-sm leading-relaxed text-muted-foreground md:text-[15px]">
+                                    {currentStage.description}
                                 </p>
                             </div>
-                            <span className="rounded-full border border-border bg-muted/25 px-2.5 py-1 text-[11px] text-muted-foreground">
-                                Interactive flow
-                            </span>
+
+                            <div className="flex items-center gap-2 self-start rounded-full border border-border bg-background/80 px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
+                                <span>Прогресс</span>
+                                <span className="font-semibold text-foreground">{activeStage + 1} / {INTRO_STAGES.length}</span>
+                            </div>
                         </div>
 
-                        <div className="grid gap-4 lg:grid-cols-[1.65fr_1fr]">
-                            <div className="rounded-2xl border border-border bg-background/85 p-5 shadow-sm">
-                                <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                                    {INTRO_STAGES[activeStage].subtitle}
-                                </p>
-                                <h4 className="mt-2 text-3xl font-semibold tracking-tight">{INTRO_STAGES[activeStage].title}</h4>
-                                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{INTRO_STAGES[activeStage].description}</p>
-
-                                <div className="mt-4 rounded-xl border border-border bg-card px-3 py-3">
-                                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                                        {INTRO_STAGES[activeStage].exampleLabel}
-                                    </p>
-                                    <p className="mt-1 break-all font-mono text-sm font-semibold">
-                                        {INTRO_STAGES[activeStage].exampleValue}
-                                    </p>
-                                </div>
-
-                                <div className="mt-5">
-                                    {activeStage === 0 && (
-                                        <>
-                                            <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                                                Транспортная единица
-                                            </label>
-                                            <input
-                                                ref={teInputRef}
-                                                type="text"
-                                                className="mt-2 h-14 w-full rounded-xl border border-border bg-background px-4 font-mono text-base text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                                placeholder="Сканируйте или введите ТЕ"
-                                                value={teCode}
-                                                onChange={(event) => setTeCode(event.target.value)}
-                                                onKeyDown={(event) => {
-                                                    if (event.key === 'Enter') {
-                                                        event.preventDefault();
-                                                        void handleLoadTe();
-                                                    }
-                                                }}
-                                            />
-                                            <button
-                                                type="button"
-                                                className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition-all hover:bg-slate-800 disabled:opacity-50"
-                                                onClick={() => void handleLoadTe()}
-                                                disabled={isLoadingRows}
-                                            >
-                                                {isLoadingRows ? <LoaderCircle size={18} className="animate-spin" /> : <RefreshCcw size={18} />}
-                                                {isLoadingRows ? 'Загрузка...' : 'Загрузить строки ТЕ'}
-                                            </button>
-                                        </>
-                                    )}
-
-                                    {activeStage === 1 && (
-                                        <>
-                                            <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                                                Старый DM
-                                            </label>
-                                            <input
-                                                ref={oldDmInputRef}
-                                                type="text"
-                                                className="mt-2 h-14 w-full rounded-xl border border-border bg-background px-4 font-mono text-base text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
-                                                placeholder="Сканируйте старый DM"
-                                                value={oldDm}
-                                                disabled={rows.length === 0}
-                                                onChange={(event) => setOldDm(event.target.value)}
-                                                onKeyDown={(event) => {
-                                                    if (event.key === 'Enter') {
-                                                        event.preventDefault();
-                                                        handleOldDmSubmit();
-                                                    }
-                                                }}
-                                            />
-                                            <button
-                                                type="button"
-                                                className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-sm font-medium text-foreground transition-all hover:bg-muted/50 disabled:opacity-50"
-                                                onClick={handleOldDmSubmit}
-                                                disabled={rows.length === 0}
-                                            >
-                                                <Search size={16} />
-                                                Найти запись
-                                            </button>
-                                        </>
-                                    )}
-
-                                    {activeStage === 2 && (
-                                        <>
-                                            <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                                                Новый DM
-                                            </label>
-                                            <input
-                                                ref={newDmInputRef}
-                                                type="text"
-                                                className="mt-2 h-14 w-full rounded-xl border border-border bg-background px-4 font-mono text-base text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
-                                                placeholder="Сканируйте новый DM"
-                                                value={newDm}
-                                                disabled={!selectedRow}
-                                                onChange={(event) => setNewDm(event.target.value)}
-                                                onKeyDown={(event) => {
-                                                    if (event.key === 'Enter') {
-                                                        event.preventDefault();
-                                                        void handleReplace();
-                                                    }
-                                                }}
-                                            />
-                                            <button
-                                                type="button"
-                                                className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-medium text-white transition-all hover:bg-blue-500 disabled:opacity-50"
-                                                onClick={() => void handleReplace()}
-                                                disabled={!selectedRow || isReplacing}
-                                            >
-                                                {isReplacing ? <LoaderCircle size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
-                                                {isReplacing ? 'Выполняется...' : 'Выполнить замену'}
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-
-                                {message && (
-                                    <div
-                                        className={`mt-4 rounded-xl border p-3 text-sm flex items-start gap-2 ${
-                                            message.type === 'success'
-                                                ? 'bg-brand-success/10 border-brand-success/30 text-brand-success'
-                                                : message.type === 'error'
-                                                    ? 'bg-brand-error/10 border-brand-error/30 text-brand-error'
-                                                    : 'bg-brand-warning/10 border-brand-warning/30 text-brand-warning'
-                                        }`}
-                                    >
-                                        {message.type === 'success' && <CheckCircle2 size={18} className="shrink-0 mt-0.5" />}
-                                        {message.type === 'error' && <XCircle size={18} className="shrink-0 mt-0.5" />}
-                                        {message.type === 'warning' && <AlertCircle size={18} className="shrink-0 mt-0.5" />}
-                                        <span>{message.text}</span>
+                        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-stretch">
+                            <div className="flex h-full flex-col gap-4">
+                                <div className="grid gap-3 md:grid-cols-3 md:auto-rows-fr">
+                                    <div className={`flex h-full min-h-[96px] flex-col justify-between rounded-2xl border p-3 shadow-sm transition-colors ${getSummaryCardClasses('neutral', normalizedTeCode.length > 0)}`}>
+                                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">ТЕ</p>
+                                        <p className="mt-2 break-all font-mono text-sm font-semibold text-foreground">
+                                            {normalizedTeCode || '—'}
+                                        </p>
                                     </div>
-                                )}
+
+                                    <div className={`flex h-full min-h-[96px] flex-col justify-between rounded-2xl border p-3 shadow-sm transition-colors ${getSummaryCardClasses('old', normalizedOldDm.length > 0)}`}>
+                                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Старый DM</p>
+                                        <p className={`mt-2 break-all font-mono text-sm font-semibold ${normalizedOldDm ? 'text-red-700' : 'text-foreground'}`}>
+                                            {normalizedOldDm || '—'}
+                                        </p>
+                                    </div>
+
+                                    <div className={`flex h-full min-h-[96px] flex-col justify-between rounded-2xl border p-3 shadow-sm transition-colors ${getSummaryCardClasses('new', (pendingReplace?.newDm || normalizedNewDm).length > 0)}`}>
+                                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Новый DM</p>
+                                        <p className={`mt-2 break-all font-mono text-sm font-semibold ${(pendingReplace?.newDm || normalizedNewDm) ? 'text-emerald-700' : 'text-foreground'}`}>
+                                            {pendingReplace?.newDm || normalizedNewDm || '—'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-1 flex-col rounded-2xl border border-border bg-background/85 p-4 shadow-sm md:p-5">
+                                    <div className="flex h-full flex-col">
+                                        <div className="flex-1 space-y-4">
+                                            {activeStage === 0 && (
+                                                <div className="space-y-3">
+                                                    <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                                                        Транспортная единица
+                                                    </label>
+
+                                                    <input
+                                                        ref={teInputRef}
+                                                        type="text"
+                                                        className="h-14 w-full rounded-xl border border-border bg-background px-4 font-mono text-base text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                        placeholder="Сканируйте или введите ТЕ"
+                                                        value={teCode}
+                                                        onChange={(event) => {
+                                                            setTeCode(event.target.value);
+                                                            setMessage(null);
+                                                        }}
+                                                        onKeyDown={(event) => {
+                                                            if (event.key === 'Enter') {
+                                                                event.preventDefault();
+                                                                void handleLoadTe();
+                                                            }
+                                                        }}
+                                                    />
+
+                                                    <button
+                                                        type="button"
+                                                        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                                        onClick={() => void handleLoadTe()}
+                                                        disabled={isLoadingRows}
+                                                    >
+                                                        {isLoadingRows ? 'Загрузка...' : 'Загрузить строки ТЕ'}
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {activeStage === 1 && (
+                                                <div className="space-y-3">
+                                                    <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                                                        Старый DM
+                                                    </label>
+
+                                                    <input
+                                                        ref={oldDmInputRef}
+                                                        type="text"
+                                                        className="h-14 w-full rounded-xl border border-border bg-background px-4 font-mono text-base text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+                                                        placeholder="Сканируйте старый DM"
+                                                        value={oldDm}
+                                                        disabled={rows.length === 0}
+                                                        onChange={(event) => {
+                                                            setOldDm(event.target.value);
+                                                            setPendingReplace(null);
+                                                            setNewDm('');
+                                                            setMessage(null);
+                                                        }}
+                                                        onKeyDown={(event) => {
+                                                            if (event.key === 'Enter') {
+                                                                event.preventDefault();
+                                                                handleOldDmSubmit();
+                                                            }
+                                                        }}
+                                                    />
+
+                                                    <button
+                                                        type="button"
+                                                        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                                        onClick={handleOldDmSubmit}
+                                                        disabled={rows.length === 0}
+                                                    >
+                                                        Найти запись
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {activeStage === 2 && (
+                                                <div className="space-y-3">
+                                                    <label className="block text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                                                        Новый DM
+                                                    </label>
+
+                                                    <input
+                                                        ref={newDmInputRef}
+                                                        type="text"
+                                                        className="h-14 w-full rounded-xl border border-border bg-background px-4 font-mono text-base text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+                                                        placeholder="Сканируйте новый DM"
+                                                        value={newDm}
+                                                        disabled={!selectedRow}
+                                                        onChange={(event) => {
+                                                            setNewDm(event.target.value);
+                                                            setPendingReplace(null);
+                                                            setMessage(null);
+                                                        }}
+                                                        onKeyDown={(event) => {
+                                                            if (event.key === 'Enter') {
+                                                                event.preventDefault();
+                                                                handlePrepareReplace();
+                                                            }
+                                                        }}
+                                                    />
+
+                                                    <div className="grid gap-3 md:grid-cols-2">
+                                                        <button
+                                                            type="button"
+                                                            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-sm font-medium text-foreground transition-all hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
+                                                            onClick={handlePrepareReplace}
+                                                            disabled={!selectedRow || isReplacing}
+                                                        >
+                                                            Проверить новый DM
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                                            onClick={() => void handleConfirmReplace()}
+                                                            disabled={!pendingReplace || isReplacing}
+                                                        >
+                                                            {isReplacing ? 'Выполняется...' : 'Заменить DM'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="mt-4 min-h-[64px]">
+                                            {message ? (
+                                                <div className={`flex min-h-[64px] items-center rounded-xl border px-3 py-2.5 text-sm ${getMessageClasses(message.type)}`}>
+                                                    {message.text}
+                                                </div>
+                                            ) : (
+                                                <div className="h-[64px]" />
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
-                            <aside className="space-y-3 lg:pl-1">
-                                {INTRO_STAGES.map((stage, index) => (
-                                    <button
-                                        key={stage.id}
-                                        type="button"
-                                        onClick={() => {
-                                            if (index <= maxUnlockedStage) {
-                                                setActiveStage(index);
-                                            }
-                                        }}
-                                        disabled={index > maxUnlockedStage}
-                                        className={`w-full rounded-2xl border px-4 py-4 text-left transition-all ${
-                                            activeStage === index
-                                                ? 'border-blue-200 bg-blue-50/70 shadow-sm'
-                                                : index > maxUnlockedStage
-                                                    ? 'border-border bg-background/60 opacity-55 cursor-not-allowed'
-                                                    : 'border-border bg-background hover:border-slate-300 hover:bg-muted/35'
-                                        }`}
-                                    >
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div>
-                                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Этап {index + 1}</p>
-                                                <p className="mt-1 text-sm font-semibold">{stage.title}</p>
-                                            </div>
-                                            <span className={`inline-flex size-7 items-center justify-center rounded-lg border text-xs font-semibold ${
-                                                activeStage === index
-                                                    ? 'border-blue-200 bg-white text-blue-700'
-                                                    : 'border-border bg-white text-muted-foreground'
-                                            }`}>
-                                                {index + 1}
-                                            </span>
-                                        </div>
-                                    </button>
-                                ))}
+                            <aside className="flex h-full flex-col rounded-2xl border border-border bg-background/70 p-3 shadow-sm">
+                                <div className="flex h-full flex-col gap-2">
+                                    {INTRO_STAGES.map((stage, index) => {
+                                        const stageState = getStageVisualState(index, activeStage, maxUnlockedStage);
+                                        const isLocked = stageState === 'locked';
+                                        const isActive = stageState === 'active';
 
-                                <div className="rounded-2xl border border-border bg-muted/20 p-4">
-                                    <div className="flex items-center gap-2">
-                                        <Workflow size={16} className="text-brand-primary" />
-                                        <p className="text-sm font-medium">Статус</p>
-                                    </div>
-                                    <p className="mt-2 text-xs text-muted-foreground">
-                                        Состояние: {flowStatus}
-                                    </p>
-                                    <p className="mt-2 text-xs text-muted-foreground">
-                                        Доступные этапы: {maxUnlockedStage + 1} из {INTRO_STAGES.length}
-                                    </p>
-                                    <p className="mt-2 text-xs text-muted-foreground">
-                                        {isLoadingRows
-                                            ? 'Ожидайте загрузку строк ТЕ'
-                                            : !rows.length
-                                                ? 'Сканируйте ТЕ'
-                                                : !selectedRow
-                                                    ? 'Сканируйте старый DM'
-                                                    : 'Сканируйте новый DM'}
-                                    </p>
+                                        return (
+                                            <button
+                                                key={stage.id}
+                                                type="button"
+                                                disabled={isLocked}
+                                                onClick={() => {
+                                                    if (!isLocked) {
+                                                        setActiveStage(index);
+                                                    }
+                                                }}
+                                                className={`flex-1 rounded-2xl border px-4 py-3 text-left transition-all ${
+                                                    isActive
+                                                        ? 'border-blue-200 bg-blue-50/70 shadow-sm'
+                                                        : isLocked
+                                                            ? 'cursor-not-allowed border-border bg-background/70 opacity-70'
+                                                            : 'border-border bg-background hover:border-slate-300 hover:bg-muted/35'
+                                                }`}
+                                            >
+                                                <div className="flex h-full min-h-[86px] items-start justify-between gap-3">
+                                                    <div className="min-w-0">
+                                                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                                            Этап {index + 1}
+                                                        </p>
+                                                        <p className="mt-1 text-sm font-semibold text-foreground">
+                                                            {stage.title}
+                                                        </p>
+                                                        <p className="mt-1 text-xs text-muted-foreground">
+                                                            {getStageStatusLabel(stageState)}
+                                                        </p>
+                                                    </div>
+
+                                                    <span
+                                                        className={`inline-flex size-9 shrink-0 items-center justify-center rounded-xl border text-sm font-semibold ${
+                                                            isActive
+                                                                ? 'border-blue-200 bg-white text-blue-700'
+                                                                : stageState === 'done'
+                                                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                                                    : 'border-border bg-white text-muted-foreground'
+                                                        }`}
+                                                    >
+                                        {index + 1}
+                                    </span>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </aside>
                         </div>
 
                         <div className="space-y-2">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <span>Прогресс операции</span>
+                                <span>{Math.round(progressPercent)}%</span>
+                            </div>
+
                             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                                 <div
                                     className="h-full rounded-full bg-[linear-gradient(90deg,#0f172a,#2563eb)] transition-all duration-500"
-                                    style={{ width: `${((activeStage + 1) / INTRO_STAGES.length) * 100}%` }}
+                                    style={{ width: `${progressPercent}%` }}
                                 />
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                                Переход вперед доступен только после завершения предыдущего этапа. Возврат назад разрешен всегда.
-                            </p>
                         </div>
+                    </div>
+                </section>
+
+                <section className="rounded-2xl border border-border bg-card p-4 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300 md:p-5">
+                    <div className="mb-3 flex items-center justify-between">
+                        <h4 className="text-sm font-semibold">Последние операции замены</h4>
+                        <span className="text-xs text-muted-foreground">Показано: {history.length} из 10</span>
+                    </div>
+
+                    <div className="hidden overflow-hidden rounded-xl border border-border md:block">
+                        <table className="w-full text-sm">
+                            <thead className="bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
+                            <tr>
+                                <th className="px-3 py-2 text-left font-medium">Время</th>
+                                <th className="px-3 py-2 text-left font-medium">ТЕ</th>
+                                <th className="px-3 py-2 text-left font-medium">Старый DM</th>
+                                <th className="px-3 py-2 text-left font-medium">Новый DM</th>
+                                <th className="px-3 py-2 text-left font-medium">Статус</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {history.map((row) => (
+                                <tr key={row.id} className="border-t border-border">
+                                    <td className="px-3 py-2 font-mono">{row.createdAt}</td>
+                                    <td className="px-3 py-2 font-mono">{row.teCode}</td>
+                                    <td className="px-3 py-2 font-mono text-red-700">{row.oldDm}</td>
+                                    <td className="px-3 py-2 font-mono text-emerald-700">{row.newDm}</td>
+                                    <td className="px-3 py-2">
+                                            <span className="rounded-full border border-brand-success/30 bg-brand-success/10 px-2 py-0.5 text-xs text-brand-success">
+                                                Успешно
+                                            </span>
+                                    </td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="space-y-2 md:hidden">
+                        {history.map((row) => (
+                            <article key={row.id} className="rounded-xl border border-border bg-background px-3 py-3">
+                                <div className="mb-1 flex items-center justify-between gap-3">
+                                    <span className="text-xs text-muted-foreground">{row.createdAt}</span>
+                                    <span className="rounded-full border border-brand-success/30 bg-brand-success/10 px-2 py-0.5 text-[11px] text-brand-success">
+                                        Успешно
+                                    </span>
+                                </div>
+                                <p className="font-mono text-xs text-muted-foreground">ТЕ: {row.teCode}</p>
+                                <p className="mt-1 font-mono text-xs text-red-700">Старый: {row.oldDm}</p>
+                                <p className="mt-1 font-mono text-xs text-emerald-700">Новый: {row.newDm}</p>
+                            </article>
+                        ))}
                     </div>
                 </section>
             </div>
