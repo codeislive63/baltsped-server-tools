@@ -26,15 +26,6 @@ builder.Host.UseSerilog((context, services, configuration) =>
 );
 
 builder.Services.AddControllers();
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("FrontendDevelopment", policy =>
-    {
-        policy.WithOrigins("http://localhost:5173")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
-});
 
 // Db
 builder.Services.AddSqlServerDatabase(builder.Configuration);
@@ -64,11 +55,6 @@ if (!app.Environment.IsDevelopment())
             });
         });
     });
-}
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseCors("FrontendDevelopment");
 }
 
 app.UseStaticFiles();
