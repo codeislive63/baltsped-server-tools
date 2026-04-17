@@ -12,6 +12,7 @@ public interface IDmReplaceService
     Task<DmReplaceUpdateResultModel> UpdateAsync(
         string teCode,
         int itemId,
+        string? currentDm,
         string newDm,
         CancellationToken cancellationToken
     );

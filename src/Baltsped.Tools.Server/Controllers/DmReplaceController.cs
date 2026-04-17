@@ -56,6 +56,7 @@ public sealed class DmReplaceController(
             var result = await dmReplaceService.UpdateAsync(
                 request.TeCode,
                 itemId,
+                request.CurrentDm,
                 request.NewDm,
                 cancellationToken);
 

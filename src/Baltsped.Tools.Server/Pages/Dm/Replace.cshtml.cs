@@ -99,7 +99,7 @@ public class ReplaceModel(IDmReplaceService dmReplaceService, ILogger<ReplaceMod
 
         try
         {
-            UpdateSummary = await dmReplaceService.UpdateAsync(teCode, itemId, newDm, cancellationToken);
+            UpdateSummary = await dmReplaceService.UpdateAsync(teCode, itemId, currentDm: null, newDm, cancellationToken);
             await LoadResultsAsync(teCode, cancellationToken);
 
             ReplaceLogMessages.UpdateCompleted(

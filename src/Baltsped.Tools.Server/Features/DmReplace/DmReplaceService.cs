@@ -51,6 +51,7 @@ public sealed class DmReplaceService(
     public Task<DmReplaceUpdateResultModel> UpdateAsync(
     string teCode,
     int itemId,
+    string? currentDm,
     string newDm,
     CancellationToken cancellationToken)
     {
@@ -60,6 +61,9 @@ public sealed class DmReplaceService(
         }
 
         var normalizedTeCode = NormalizeTeCode(teCode);
+        var normalizedCurrentDm = string.IsNullOrWhiteSpace(currentDm)
+            ? null
+            : NormalizeDm(currentDm);
         var normalizedDm = NormalizeDm(newDm);
 
         return toolsDbExecutor.ExecuteAsync(async (dbContext, ct) =>
@@ -76,6 +80,12 @@ public sealed class DmReplaceService(
                 })
                 .SingleOrDefaultAsync(ct) ?? throw new ValidationException("Запись для обновления не найдена");
 
+            if (!string.IsNullOrWhiteSpace(normalizedCurrentDm)
+                && !string.Equals(article.Barcode, normalizedCurrentDm, StringComparison.Ordinal))
+            {
+                throw new ValidationException("Текущий DM не совпадает с записью в БД");
+            }
+
             if (string.Equals(article.Barcode, normalizedDm, StringComparison.Ordinal))
             {
                 DmReplaceLogMessages.UpdateSkippedBecauseUnchanged(logger, itemId, normalizedTeCode);
@@ -83,9 +93,14 @@ public sealed class DmReplaceService(
                 return new DmReplaceUpdateResultModel();
             }
 
-            var dmAlreadyExists = await dbContext.Articles
+            var possibleDmDuplicates = await dbContext.Articles
                 .AsNoTracking()
-                .AnyAsync(x => x.ItemId != itemId && x.Barcode == normalizedDm, ct);
+                .Where(x => x.ItemId != itemId && x.Barcode == normalizedDm)
+                .Select(x => x.Barcode)
+                .ToListAsync(ct);
+
+            var dmAlreadyExists = possibleDmDuplicates.Any(existingDm =>
+                string.Equals(existingDm, normalizedDm, StringComparison.Ordinal));
 
             if (dmAlreadyExists)
             {

@@ -11,6 +11,10 @@ public sealed class DmReplaceUpdateRequestModel
     [StringLength(64)]
     public string TeCode { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Введите текущий DM")]
+    [StringLength(256)]
+    public string CurrentDm { get; set; } = string.Empty;
+
     [Required(ErrorMessage = "Введите новый DM")]
     [StringLength(256)]
     public string NewDm { get; set; } = string.Empty;
