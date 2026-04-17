@@ -366,3 +366,7 @@ FodyWeavers.xsd
 
 # Cursor – a cross-platform .NET REPL
 .cursor/
+
+**/.idea/
+**/.vscode/
+**/dist/
