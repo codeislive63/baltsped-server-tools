@@ -4,6 +4,7 @@ using Baltsped.Tools.Server.Features.DmReplace;
 using Baltsped.Tools.Server.Features.TeLookup.Repository;
 using Baltsped.Tools.Server.Features.TeLookup.Service;
 using Baltsped.Tools.Server.Logging;
+using Microsoft.AspNetCore.Mvc;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,7 +25,6 @@ builder.Host.UseSerilog((context, services, configuration) =>
                  )
 );
 
-builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 builder.Services.AddCors(options =>
 {
@@ -51,7 +51,19 @@ var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
+    app.UseExceptionHandler(exceptionHandlerApp =>
+    {
+        exceptionHandlerApp.Run(async context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            await context.Response.WriteAsJsonAsync(new ProblemDetails
+            {
+                Title = "Internal Server Error",
+                Detail = "An unexpected error occurred",
+                Status = StatusCodes.Status500InternalServerError
+            });
+        });
+    });
 }
 
 if (app.Environment.IsDevelopment())
@@ -64,6 +76,6 @@ app.UseRouting();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapRazorPages();
+app.MapFallbackToFile("index.html");
 
 app.Run();

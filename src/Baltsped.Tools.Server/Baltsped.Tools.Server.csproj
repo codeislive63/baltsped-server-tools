@@ -8,6 +8,9 @@
     <DockerDefaultTargetOS>Windows</DockerDefaultTargetOS>
     <DockerfileContext>..\..</DockerfileContext>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <FrontendProjectDir>..\Baltsped.Tools.Web</FrontendProjectDir>
+    <FrontendDistDir>$(FrontendProjectDir)\dist</FrontendDistDir>
+    <ServerWwwRootDir>$(MSBuildProjectDirectory)\wwwroot</ServerWwwRootDir>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,15 +21,19 @@
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
   </ItemGroup>
 
-	<Target Name="TailwindRestore" BeforeTargets="Build" Condition="Exists('package.json') and !Exists('node_modules')">
-		<Exec Command="npm install" />
-	</Target>
+  <Target Name="BuildFrontend" BeforeTargets="Build;Publish" Condition="Exists('$(FrontendProjectDir)\package.json')">
+    <Exec Command="npm install" WorkingDirectory="$(FrontendProjectDir)" />
+    <Exec Command="npm run build" WorkingDirectory="$(FrontendProjectDir)" />
+  </Target>
 
-	<Target Name="TailwindBuild" BeforeTargets="Build" Condition="Exists('package.json')">
-		<Exec Command="npm run tw:build" />
-	</Target>
-
-	<Target Name="TailwindBuildOnPublish" BeforeTargets="Publish" Condition="Exists('package.json')">
-		<Exec Command="npm run tw:build" />
-	</Target>
+  <Target Name="SyncFrontendDistToWwwroot" AfterTargets="BuildFrontend" Condition="Exists('$(FrontendDistDir)')">
+    <RemoveDir Directories="$(ServerWwwRootDir)" />
+    <MakeDir Directories="$(ServerWwwRootDir)" />
+    <ItemGroup>
+      <FrontendDistFiles Include="$(FrontendDistDir)\**\*" />
+    </ItemGroup>
+    <Copy
+      SourceFiles="@(FrontendDistFiles)"
+      DestinationFiles="@(FrontendDistFiles->'$(ServerWwwRootDir)\%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
 </Project>
